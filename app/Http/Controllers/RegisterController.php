@@ -26,7 +26,7 @@ class RegisterController extends BaseController
 	    array(
 	      'object' => 'page',
 	      'verify_token' => 'sad',
-	      'callback_url' => 'https://a8d7b7c3.ngrok.io/laravel/public/take',
+	      'callback_url' => 'https://75d24456.ngrok.io/laravel/public/take',
 	      'fields' => 'feed,conversations'
 	    )
 	  );

@@ -41,95 +41,56 @@ class TakeController extends BaseController
 		$receive3 = $request->input('entry.0.messaging.0.message.is_echo');
 
 		if(isset($receive1)){
-			if( $request->input('entry.0.id') != $request->input('entry.0.messaging.0.sender.id')){
-				$pagekey=FacebookPages::where('pagesid',$request->input('entry.0.messaging.0.recipient.id'))->first()->access_token;
-				$fb->setDefaultAccessToken($pagekey);
-				$requeststring='/m_'.$request->input('entry.0.messaging.0.message.mid').'?fields=from';				
-				$response1 = $fb->get($requeststring,$pagekey);				
-				$json = json_decode($response1->getBody(), true)['from']['id'];
-			}
-			else {
-				$pagekey=FacebookPages::where('pagesid',$request->input('entry.0.messaging.0.sender.id'))->first()->access_token;
-				$fb->setDefaultAccessToken($pagekey);				
-				$requeststring='/m_'.$request->input('entry.0.messaging.0.message.mid').'?fields=to';
-				$response1 = $fb->get($requeststring,$pagekey);				
-				$json = json_decode($response1->getBody(), true)['to']['data'][0]['id'];
-			}
+			if ( ReceiveData::where('oid','m_'.str_replace('.$','_',$request->input('entry.0.messaging.0.message.mid')))->get()->isEmpty()){
+				if( $request->input('entry.0.id') != $request->input('entry.0.messaging.0.sender.id')){
+					$pagekey=FacebookPages::where('pagesid',$request->input('entry.0.messaging.0.recipient.id'))->first()->access_token;
+					$fb->setDefaultAccessToken($pagekey);
+					$requeststring='/m_'.$request->input('entry.0.messaging.0.message.mid').'?fields=from';				
+					$response1 = $fb->get($requeststring,$pagekey);				
+					$json = json_decode($response1->getBody(), true)['from']['id'];
+				}
+				else {
+					$pagekey=FacebookPages::where('pagesid',$request->input('entry.0.messaging.0.sender.id'))->first()->access_token;
+					$fb->setDefaultAccessToken($pagekey);				
+					$requeststring='/m_'.$request->input('entry.0.messaging.0.message.mid').'?fields=to';
+					$response1 = $fb->get($requeststring,$pagekey);				
+					$json = json_decode($response1->getBody(), true)['to']['data'][0]['id'];
+				}
 
-			/*
-			$data = new ReceiveData;
-			$data->type = 'message';
-			$data->user_id = '';
-			$data->comments = $request->input('entry.0.messaging.0.message.text');
-			$data->sender_name = $json['first_name'].$json['last_name'];
-			$data->attackment = $request->input('entry.0.messaging.0.message.attachments.0.url');
-			$data->post_id = 'm_'.$request->input('entry.0.messaging.0.sender.id');			
-			$data->page =  $request->input('entry.0.messaging.0.recipient.id');
-			$data->data = $request->input('entry.0.messaging');
-			if( $request->input('entry.0.id') != $request->input('entry.0.messaging.0.sender.id')){
-				if ( ReceiveData::where('sender_id', $request->input('entry.0.messaging.0.sender.id'))->get()->isEmpty() ) {
-		        	$data->Isroot = 1 ;
-					$data->oid = 'm_'.$request->input('entry.0.messaging.0.sender.id') ;
-		        } else {
-		        	$data->Isroot = 2 ;
-					$data->oid = 'm_'.$request->input('entry.0.messaging.0.message.mid');
-		        }
-				$data->receive_id = $request->input('entry.0.messaging.0.sender.id');
-				$data->receive_name = $json['first_name'].$json['last_name'];				
-		    	$data->parent_id = 'm_'.$request->input('entry.0.messaging.0.sender.id') ;
-				$data->sender_id = $request->input('entry.0.messaging.0.sender.id');
-			}
-			else{
-				if ( ReceiveData::where('sender_id', $request->input('entry.0.messaging.0.recipient.id'))->get()->isEmpty() ) {
-		        	$data->Isroot = 1 ;
-					$data->oid = 'm_'.$request->input('entry.0.messaging.0.sender.id') ;
-		        } else {
-		        	$data->Isroot = 2 ;
-					$data->oid = 'm_'.$request->input('entry.0.messaging.0.message.mid');
-		        }
-				$data->receive_id = $request->input('entry.0.messaging.0.recipient.id');
-				$data->receive_name = 'Me';
-		    	$data->parent_id = 'm_'.$request->input('entry.0.messaging.0.recipient.id') ;
-				$data->sender_id = $request->input('entry.0.messaging.0.recipient.id');
-			}
-			$data->created_at = date("Y-m-d H:i:s", $request->input('entry.0.messaging.0.timestamp')/1000);
-			$data->save();*/
+				if ( ! ReceiveData::where([['sender_id',$json],['receive_id',$request->input('entry.0.id')],['isRoot',1]])->orwhere([['sender_id',$request->input('entry.0.id')],['receive_id',$json],['isRoot',1]])->get()->isEmpty()){
 
-
-
-			if ( ! ReceiveData::where([['sender_id',$json],['receive_id',$request->input('entry.0.id')],['isRoot',1]])->orwhere([['sender_id',$request->input('entry.0.id')],['receive_id',$json],['isRoot',1]])->get()->isEmpty()){
-
-				$data = new ReceiveData;
-				$sender_db = ReceiveData::where([['sender_id',$json],['receive_id',$request->input('entry.0.id')],['isRoot',1]])->orwhere([['sender_id',$request->input('entry.0.id')],['receive_id',$json],['isRoot',1]])->get()->first();	
-				$data->type = 'message';
-				$data->user_id = '';
-				$data->comments = $request->input('entry.0.messaging.0.message.text');
-				$data->attackment = $request->input('entry.0.messaging.0.message.attachments.0.url');
-				$data->post_id = $sender_db['oid'];		
-				$data->page =  $request->input('entry.0.messaging.0.recipient.id');
-				$data->data = $request->input('entry.0.messaging');
-			    $data->Isroot = 2 ;
-				$data->oid = 'm_'.$request->input('entry.0.messaging.0.message.mid');
-		    	$data->parent_id = $sender_db['oid'];
-				if( $request->input('entry.0.id') == $request->input('entry.0.messaging.0.sender.id')){
-					$data->receive_name = $sender_db['receive_name'];									
+					$data = new ReceiveData;
+					$sender_db = ReceiveData::where([['sender_id',$json],['receive_id',$request->input('entry.0.id')],['type','message']])->orwhere([['sender_id',$request->input('entry.0.id')],['receive_id',$json],['isRoot',1]],['type','message'])->get()->first();	
+					var_dump($sender_db);
+					$data->type = 'message';
+					$data->user_id = '';
+					$data->comments = $request->input('entry.0.messaging.0.message.text');
+					$data->attackment = $request->input('entry.0.messaging.0.message.attachments.0.payload.url');
+					$data->post_id = $sender_db['oid'];		
+					$data->page =  $request->input('entry.0.messaging.0.recipient.id');
+					$data->data = $request->input('entry.0.messaging');
+				    $data->Isroot = 2 ;
+					$data->oid = 'm_'.str_replace('.$','_',$request->input('entry.0.messaging.0.message.mid'));						
 					$data->receive_id = $sender_db['receive_id'];
-					$data->sender_name = 'Me';
+					$data->sender_name = $sender_db['sender_name'];
 					$data->sender_id = $sender_db['sender_id'];
+			    	$data->parent_id = $sender_db['oid'];
+			    	$data->like = false;
+					$data->hidden = false;
+			    	$data->is_read = false;
+					if( $request->input('entry.0.id') == $request->input('entry.0.messaging.0.sender.id')){
+						$data->receive_name = 'Me';					
+					}
+					else{					
+						$data->receive_name = $sender_db['sender_name'];;
+					}
+					$data->created_at = date("Y-m-d H:i:s", $request->input('entry.0.messaging.0.timestamp')/1000);
+					$data->save();
 				}
-				else{					
-					$data->receive_name = 'Me';								
-					$data->receive_id = $sender_db['sender_id'];
-					$data->sender_name = $sender_db['receive_name'];
-					$data->sender_id = $sender_db['receive_id'];	
+				else{
+					$a=1;
+					$b=$a[0]['1']->abc;
 				}
-				$data->created_at = date("Y-m-d H:i:s", $request->input('entry.0.messaging.0.timestamp')/1000);
-				$data->save();return 1;
-			}
-			else{
-				$a=1;
-				$b=$a[0]['1']->abc;
-				return $b;
 			}
 
 		}
@@ -142,7 +103,7 @@ class TakeController extends BaseController
 					$data->oid = str_replace('.$','_',$request->input('entry.0.changes.0.value.thread_id'));				
 					$data->type = 'message';
 					$data->comments = '';
-					$data->attackment = '';
+					$data->attackment = null;
 					$data->user_id = '';
 					$data->post_id = str_replace('.$','_',$request->input('entry.0.changes.0.value.thread_id'));
 					$data->page =  $request->input('entry.0.id');
@@ -159,49 +120,97 @@ class TakeController extends BaseController
 					$data->sender_id = $json2["senders"]['data'][0]['id'];	
 					$data->receive_id = $json2["senders"]['data'][1]['id'];
 					$data->receive_name = $json2["senders"]['data'][1]['name'];
+			    	$data->like = false;
+					$data->hidden = false;
+			    	$data->is_read = false;
 					$data->save();
 				}
 			}
-			else if ( $request->input('entry.0.changes.0.value.item')  == 'comment')
+			else if ( $request->input('entry.0.changes.0.value.item')  == 'comment' )
 			{
-				$data = new ReceiveData;
+				if ( $request->input('entry.0.changes.0.value.verb')  == 'add'){
+					$data = new ReceiveData;
 
-				if ( ReceiveData::where([['oid', $request->input('entry.0.changes.0.value.parent_id')],['isRoot',1]])->get()->isEmpty() ) {
-					if ($request->input('entry.0.changes.0.value.parent_id')==$request->input('entry.0.changes.0.value.post_id'))
-					{						
-		        		$data->Isroot = 1 ;
-						$data->parent_id = $request->input('entry.0.changes.0.value.comment_id');
-						$data->oid = $request->input('entry.0.changes.0.value.comment_id');
-					}
-					else
-					{						
-		        		$data->Isroot = 1 ;
+					if ( ReceiveData::where([['oid', $request->input('entry.0.changes.0.value.parent_id')],['isRoot',1]])->get()->isEmpty() ) {
+						if ($request->input('entry.0.changes.0.value.parent_id')==$request->input('entry.0.changes.0.value.post_id'))
+						{						
+			        		$data->Isroot = 1 ;
+							$data->parent_id = $request->input('entry.0.changes.0.value.comment_id');
+							$data->oid = $request->input('entry.0.changes.0.value.comment_id');
+						}
+						else
+						{						
+			        		$data->Isroot = 1 ;
+							$data->parent_id = $request->input('entry.0.changes.0.value.parent_id');
+							$data->oid = $request->input('entry.0.changes.0.value.parent_id');
+						}
+			        } else {
+			        	$data->Isroot = 2 ;		        	
 						$data->parent_id = $request->input('entry.0.changes.0.value.parent_id');
-						$data->oid = $request->input('entry.0.changes.0.value.parent_id');
+						$data->oid = $request->input('entry.0.changes.0.value.comment_id');
+			        }
+					$data->type = 'comment';
+					$data->comments = $request->input('entry.0.changes.0.value.message');
+					//////////////////////////////
+					if (null === $request->input('entry.0.changes.0.value.message') && null ===$request->input('entry.0.changes.0.value.photo')) {						
+						$pagekey=FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->access_token;
+						$requeststring='/'. $request->input('entry.0.changes.0.value.comment_id') .'?fields=attachment';
+						$response2 = $fb->get($requeststring,$pagekey);
+						$json3 = json_decode($response2->getBody(), true);
+						if($json3['attachment']['type']=='sticker'){
+							$data->attackment = $json3['attachment']['media']['image']['src'];
+						}
+						else{							
+							$attach = $json3['attachment']['media']['image']['src'];
+							$data->attackment = urldecode(substr($attach,strpos($attach,'url=')+4,-5-strpos($attach,'&url=')+strpos($attach,'&_nc_hash=')));
+						}
 					}
-		        } else {
-		        	$data->Isroot = 2 ;		        	
-					$data->parent_id = $request->input('entry.0.changes.0.value.parent_id');
-					$data->oid = $request->input('entry.0.changes.0.value.comment_id');
-		        }
-				$data->type = 'comment';
-				$data->comments = $request->input('entry.0.changes.0.value.message');
-				$data->attackment = $request->input('entry.0.changes.0.value.attachments.0.url');
-				$data->sender_id = $request->input('entry.0.changes.0.value.sender_id');
-				$data->sender_name = $request->input('entry.0.changes.0.value.sender_name');
-				$data->user_id = '';
-				$data->post_id = $request->input('entry.0.changes.0.value.post_id');	
-				$data->page =  $request->input('entry.0.id');
-				$data->data = $request->input('entry.0.changes');
-				$data->created_at = date("Y-m-d H:i:s", $request->input('entry.0.changes.0.value.created_time'));
-				$data->receive_id = $request->input('entry.0.id');
-				if( $request->input('entry.0.id') != $request->input('entry.0.changes.0.value.sender_id')){
-					$data->receive_name = 'You';
+					else{
+						$data->attackment = $request->input('entry.0.changes.0.value.photo');
+					}
+					$data->sender_id = $request->input('entry.0.changes.0.value.sender_id');
+					$data->sender_name = $request->input('entry.0.changes.0.value.sender_name');
+					$data->user_id = '';
+					$data->post_id = $request->input('entry.0.changes.0.value.post_id');	
+					$data->page =  $request->input('entry.0.id');
+					$data->data = $request->input('entry.0.changes');
+					$data->created_at = date("Y-m-d H:i:s", $request->input('entry.0.changes.0.value.created_time'));
+					$data->receive_id = $request->input('entry.0.id');
+			    	$data->like = false;
+					$data->hidden = false;
+			    	$data->is_read = false;
+					if( $request->input('entry.0.id') != $request->input('entry.0.changes.0.value.sender_id')){
+						$data->receive_name = 'You';
+					}
+					else{
+						$data->receive_name = 'Me';
+					}
+					$data->save();
 				}
-				else{
-					$data->receive_name = 'Me';
+				else if ( $request->input('entry.0.changes.0.value.verb')  == 'remove'){
+					if( ReceiveData::where('oid',$request->input('entry.0.changes.0.value.comment_id'))->select('isroot')->get()[0]['isroot'] == 1 ) {						
+						$oidarray = ReceiveData::where('parent_id', $request->input('entry.0.changes.0.value.comment_id'))->select('oid')->get();
+						ReceiveData::where('parent_id', $request->input('entry.0.changes.0.value.comment_id'))
+														->delete();
+					}
+					else {						
+						$oidarray[] = array('oid'=>$request->input('entry.0.changes.0.value.comment_id'));
+						ReceiveData::where('oid', $request->input('entry.0.changes.0.value.comment_id'))
+														->delete();
+					}
+					var_dump($oidarray);
+					$data = array("oid"=>$oidarray, "delete"=>1);
 				}
-				$data->save();
+				else if ( $request->input('entry.0.changes.0.value.verb')  == 'hide'){
+					ReceiveData::where('oid', $request->input('entry.0.changes.0.value.comment_id'))
+														->update(['hidden'=>true]);
+					$data = array("oid"=>$request->input('entry.0.changes.0.value.comment_id'), "updatehide"=>true);
+				}
+				else if ( $request->input('entry.0.changes.0.value.verb')  == 'unhide'){
+					ReceiveData::where('oid', $request->input('entry.0.changes.0.value.comment_id'))
+														->update(['hidden'=>false]);
+					$data = array("oid"=>$request->input('entry.0.changes.0.value.comment_id'), "updatehide"=>false);
+				}
 			}
 			else if ($request->input('entry.0.changes.0.value.item')  == 'post'){
 				$data = new ReceiveData;
@@ -219,7 +228,23 @@ class TakeController extends BaseController
 				$data->created_at = date("Y-m-d H:i:s", $request->input('entry.0.changes.0.value.created_time'));
 				$data->receive_id= $request->input('entry.0.id');
 				$data->receive_name = '';
+		    	$data->like = false;
+				$data->hidden = false;
+		    	$data->is_read = false;
 				$data->save();
+			}
+			else if ($request->input('entry.0.changes.0.value.item')  == 'like'){
+				if ( $request->input('entry.0.id') == $request->input('entry.0.changes.0.value.sender_id')){
+					if($request->input('entry.0.changes.0.value.verb')=='add'){
+						$update = true;
+					}
+					else{
+						$update = false;
+					}
+					ReceiveData::where('oid', $request->input('entry.0.changes.0.value.comment_id'))
+														->update(['like'=>$update]);
+					$data = array("oid"=>$request->input('entry.0.changes.0.value.comment_id'), "updatelike"=>$update);
+				}
 			}
 		}
 
@@ -240,22 +265,43 @@ class TakeController extends BaseController
         $oid=$_GET["oid"];
         $chatdata=$_GET["chatdata"];
 
-	  	$requeststring = $fb->request(
-	    'POST',
-	    '/'.$oid.'/comments',
-	    array(
-	      'message' => $chatdata,
-	    ));
-	    try {
-		    $response = $fb->getClient()->sendRequest($requeststring);
-		} catch(Facebook\Exceptions\FacebookResponseException $e) {
-		    // When Graph returns an error
-		    echo 'Graph returned an error: ' . $e->getMessage();
-		    exit;
-		} catch(Facebook\Exceptions\FacebookSDKException $e) {
-		    // When validation fails or other local issues
-		    echo 'Facebook SDK returned an error: ' . $e->getMessage();
-		    exit;
+        if ( strpos($oid,'mid_') ){
+        	$requeststring = $fb->request(
+		    'POST',
+		    '/'.str_replace('t_mid_','t_mid.$',$oid).'/messages',
+		    array(
+		      'message' => $chatdata,
+		    ));
+		    try {
+			    $response = $fb->getClient()->sendRequest($requeststring);
+			} catch(Facebook\Exceptions\FacebookResponseException $e) {
+			    // When Graph returns an error
+			    echo 'Graph returned an error: ' . $e->getMessage();
+			    exit;
+			} catch(Facebook\Exceptions\FacebookSDKException $e) {
+			    // When validation fails or other local issues
+			    echo 'Facebook SDK returned an error: ' . $e->getMessage();
+			    exit;
+			}
+		}
+		else{			
+		  	$requeststring = $fb->request(
+		    'POST',
+		    '/'.$oid.'/comments',
+		    array(
+		      'message' => $chatdata,
+		    ));
+		    try {
+			    $response = $fb->getClient()->sendRequest($requeststring);
+			} catch(Facebook\Exceptions\FacebookResponseException $e) {
+			    // When Graph returns an error
+			    echo 'Graph returned an error: ' . $e->getMessage();
+			    exit;
+			} catch(Facebook\Exceptions\FacebookSDKException $e) {
+			    // When validation fails or other local issues
+			    echo 'Facebook SDK returned an error: ' . $e->getMessage();
+			    exit;
+			}
 		}
     }
     function onLike(LaravelFacebookSdk $fb)
@@ -263,11 +309,20 @@ class TakeController extends BaseController
 
         $fb->setDefaultAccessToken(Session::get('page_key'));
         $oid=$_GET["oid"];
+        $type=$_GET["type"];
 
-	  	$requeststring = $fb->request(
-	    'POST',
-	    '/'.$oid.'/likes'
-	    );
+        if ($type==1){
+		  	$requeststring = $fb->request(
+		    'POST',
+		    '/'.$oid.'/likes'
+		    );
+		}
+		else{
+			$requeststring = $fb->request(
+		    'DELETE',
+		    '/'.$oid.'/likes'
+		    );
+		}
 	    try {
 		    $response = $fb->getClient()->sendRequest($requeststring);
 		} catch(Facebook\Exceptions\FacebookResponseException $e) {
@@ -281,6 +336,65 @@ class TakeController extends BaseController
 		}
     }
     function onDelete(LaravelFacebookSdk $fb)
+    {
+
+        $fb->setDefaultAccessToken(Session::get('page_key'));
+        $oid=$_GET["oid"];
+
+	  	$requeststring = $fb->request(
+	    'DELETE',
+	    '/'.$oid
+	    );
+	    try {
+		    $response = $fb->getClient()->sendRequest($requeststring);
+		} catch(Facebook\Exceptions\FacebookResponseException $e) {
+		    // When Graph returns an error
+		    echo 'Graph returned an error: ' . $e->getMessage();
+		    exit;
+		} catch(Facebook\Exceptions\FacebookSDKException $e) {
+		    // When validation fails or other local issues
+		    echo 'Facebook SDK returned an error: ' . $e->getMessage();
+		    exit;
+		}
+    }
+    function onHide(LaravelFacebookSdk $fb)
+    {
+
+        $fb->setDefaultAccessToken(Session::get('page_key'));
+        $oid=$_GET["oid"];
+        $type=$_GET["type"];
+
+        if ($type==1){
+		  	$requeststring = $fb->request(
+		    'POST',
+		    '/'.$oid,
+		    array(
+			      'is_hidden' => true,
+			    )
+		    );
+		}
+		else{
+			$requeststring = $fb->request(
+		    'POST',
+		    '/'.$oid,
+		    array(
+			      'is_hidden' => false,
+			    )
+		    );
+		}	  	
+	    try {
+		    $response = $fb->getClient()->sendRequest($requeststring);
+		} catch(Facebook\Exceptions\FacebookResponseException $e) {
+		    // When Graph returns an error
+		    echo 'Graph returned an error: ' . $e->getMessage();
+		    exit;
+		} catch(Facebook\Exceptions\FacebookSDKException $e) {
+		    // When validation fails or other local issues
+		    echo 'Facebook SDK returned an error: ' . $e->getMessage();
+		    exit;
+		}
+    }
+    function onInbox(LaravelFacebookSdk $fb)
     {
 
         $fb->setDefaultAccessToken(Session::get('page_key'));

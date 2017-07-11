@@ -12,6 +12,8 @@ class Pusher implements MessageComponentInterface
      */
     protected $clients;
 
+    protected $cid = array();
+
     public function __construct() {
         $this->clients = new \SplObjectStorage;
     }
@@ -19,6 +21,7 @@ class Pusher implements MessageComponentInterface
     public function onOpen(ConnectionInterface $conn) {
         // Store the new connection to send messages to later
         $this->clients->attach($conn);
+        $this->cid[$conn->WebSocket->request->getQuery()->toArray()["aid"]] = $conn;
 
         echo "New connection! ({$conn->resourceId})\n";
     }
@@ -29,7 +32,8 @@ class Pusher implements MessageComponentInterface
             , $from->resourceId, $msg, $numRecv, $numRecv == 1 ? '' : 's');
 
         foreach ($this->clients as $client) {
-            if ($from !== $client) {
+            var_dump("aabbbccc ".$client->WebSocket->request->getQuery()->toArray());
+            if ($from !== $client  ) {
                 //The sender is not the receiver, send to each client connected
                 $client->send($msg);
             }
@@ -41,6 +45,7 @@ class Pusher implements MessageComponentInterface
         echo sprintf('Server sending message "' . $msg . '" to all other connection') . "\n";
 
         foreach ($this->clients as $client) {
+            var_dump($this->cid);
             //if ($from !== $client) {
                 // The sender is not the receiver, send to each client connected
                 $client->send($msg);

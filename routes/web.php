@@ -35,3 +35,11 @@ Route::any('/getdetail','GetDataController@getdetail');
 Route::any('/chat','TakeController@onChat');
 
 Route::any('/picture','TakeController@onPicture');
+
+Route::any('/like','TakeController@onLike');
+
+Route::any('/delete','TakeController@onDelete');
+
+Route::any('/hide','TakeController@onHide');
+
+Route::any('/inbox','TakeController@onInbox');

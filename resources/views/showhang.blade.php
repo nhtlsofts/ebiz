@@ -9,10 +9,12 @@
 		<link rel="shortcut icon" href="../favicon.ico">
 		<link rel="stylesheet" type="text/css" href="css/normalize.css" />
 		<link rel="stylesheet" type="text/css" href="css/tabs.css" />
-		<link rel="stylesheet" type="text/css" href="css/tabstyles.css" />
-		<link rel="stylesheet" type="text/css" href="css/demo.css" />		
+		<link rel="stylesheet" type="text/css" href="css/tabstyles.css" />	
 		<link rel="stylesheet" type="text/css" href="css/lam.css" />
-  		
+		<link rel="stylesheet" type="text/css" href="css/pe-icon-7-stroke.css" />  	
+		<script type="text/javascript">
+    		<?php echo "var pagekey = '".Session::get('page_key')."';" ?>
+		</script>	
 	</head>
     <body>
 	    <div class="wrapper">
@@ -23,8 +25,8 @@
 						<div class="top">
 						<nav>
 							<ul>
-								<li><a href="#section-underline-1" ><span>Comments</span></a></li>
-								<li><a href="#section-underline-2" ><span>Messages</span></a></li>
+								<li><a href="#section-underline-1" class="icon icon-comment"><span>Comments</span></a></li>
+								<li><a href="#section-underline-2" class="icon icon-chat"><span>Messages</span></a></li>
 							</ul>
 						</nav>
 						</div>
@@ -63,7 +65,7 @@
 		        </div>
 		        <div class="right">
 		            <div class="top"><span><span class="name"></span></span></div>
-		            <div class="chat" data-chat="1593172364028531_1593172830695151">
+		            <div class="chat" >
 		                <!--<div class="bubble you">
 		                <div class="bubble me">-->
 		            </div>
@@ -74,9 +76,13 @@
 		                <a href="javascript:;" class="write-link send"></a>
 		            </div>
 		        </div>
+		        <div class='right_bar'>
+		        </div>
 		    </div>
 		</div>
-		
+		<input type="file" id="selectedFile" style="display: none;" accept="image/x-png,image/gif,image/jpeg"/>                          
+	    <canvas id="canvas" width="300" height="300" style="display: none;">
+	    </canvas>
 		<!--
 		<script src="https://a8d7b7c3.ngrok.io/autobahn.js"></script>
 		-->

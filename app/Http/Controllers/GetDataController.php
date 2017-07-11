@@ -17,7 +17,7 @@ class GetDataController extends BaseController
 	    $fb->setDefaultAccessToken(Session::get('page_key'));
 
 	    $data = DB::table('receive_data')
-                ->select('x1.parent_id','receive_data.oid','x1.type','x1.comments','x1.isroot','x1.sender_id','x1.sender_name','x1.user_id',
+                ->select('x1.parent_id','receive_data.oid','x1.type','x1.comments','x1.isroot','x1.sender_id','receive_data.sender_name','x1.user_id',
                     'x1.post_id','x1.page','x1.data','x1.created_at','x1.updated_at')
                 ->leftJoin(DB::raw("(
                     select parent_id,max(created_at) as createtime
@@ -31,7 +31,6 @@ class GetDataController extends BaseController
                 ->join(DB::raw("(
                     select * 
                     from receive_data
-                    where (attackment is null or attackment like '') and comments not like ''
                     ) x1"), function($join)
                 {
                     $join->on('x1.created_at', '=', 'x.createtime');                        
@@ -40,6 +39,7 @@ class GetDataController extends BaseController
                 ->where('receive_data.Isroot' , 1)
                 ->get()->toArray();
 
+                    //where (attackment is null or attackment like '') and comments not like ''
         return view('showhang',['manages' => $data]);
 	}
     function getdetail(LaravelFacebookSdk $fb)
@@ -51,9 +51,15 @@ class GetDataController extends BaseController
                 ->where([
                     ['parent_id', $oid]
                     ])
+                ->where(function($q) {
+                    $q  ->where('comments','<>','')
+                        ->orWhereNotNull('attackment');
+                })
+                ->orderBy('created_at', 'asc')
                 ->get()->toArray();
 
         return $data;
+        //
     }
 }
 

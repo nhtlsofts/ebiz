@@ -27,6 +27,9 @@ class CreateReceiveDataTable extends Migration
             $table->string('post_id',100);
             $table->string('page',100);
             $table->string('attackment',500)->nullable();
+            $table->boolean('like');
+            $table->boolean('hidden');
+            $table->boolean('is_read');
             $table->json('data');
             $table->timestamps();
         });
