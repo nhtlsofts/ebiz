@@ -1,8 +1,9 @@
 (function() {
 
     $('.bar #like').live('click',function() {
+        $('#k_'+ $(this).attr('data_id') +' .bar #like').attr("id", "dislike");
         $.ajax({
-            url: "https://75d24456.ngrok.io/laravel/public/like",
+            url: "/laravel/public/like",
             type: 'GET',
             cache: false,
             data: 'oid=' + $(this).attr('data_id')+'&type=1',
@@ -16,8 +17,9 @@
     });
 
     $('.bar #dislike').live('click',function() {
+        $('#k_'+ $(this).attr('data_id') +' .bar #dislike').attr("id", "like");
         $.ajax({
-            url: "https://75d24456.ngrok.io/laravel/public/like",
+            url: "/laravel/public/like",
             type: 'GET',
             cache: false,
             data: 'oid=' + $(this).attr('data_id')+'&type=0',
@@ -32,8 +34,9 @@
 
 
     $('.bar #hide').live('click',function() {
+        $('#k_'+ $(this).attr('data_id') +' .bar #hide').attr("id", "unhide");
         $.ajax({
-            url: "https://75d24456.ngrok.io/laravel/public/hide",
+            url: "/laravel/public/hide",
             type: 'GET',
             cache: false,
             data: 'oid=' + $(this).attr('data_id')+'&type=1',
@@ -47,8 +50,9 @@
     });
 
     $('.bar #unhide').live('click',function() {
+        $('#k_'+ $(this).attr('data_id') +' .bar #unhide').attr("id", "hide");
         $.ajax({
-            url: "https://75d24456.ngrok.io/laravel/public/hide",
+            url: "/laravel/public/hide",
             type: 'GET',
             cache: false,
             data: 'oid=' + $(this).attr('data_id')+'&type=0',
@@ -61,9 +65,10 @@
         });
     });
 
-    $('.bar #delete').live('click',function() {
+    $('.bar #delete').live('click',function() {        
+        $('#k_'+$(this).attr('data_id')).fadeOut();
         $.ajax({
-            url: "https://75d24456.ngrok.io/laravel/public/delete",
+            url: "/laravel/public/delete",
             type: 'GET',
             cache: false,
             data: 'oid=' + $(this).attr('data_id'),
@@ -90,7 +95,7 @@
             var currentPerson = $(this);
             ///////
             $.ajax({
-                url: "https://75d24456.ngrok.io/laravel/public/getdetail",
+                url: "/laravel/public/getdetail",
                 type: 'GET',
                 cache: false,
                 data: 'oid=' + $(this).attr('data-chat'),
@@ -99,11 +104,12 @@
                     //input dữ liệu lấy về từ server vào textbox
                     $(".wrapper .container .right").empty();
                     // Top
-                    var top = $("<div class='top' id='curent_post' post='"+ currentPerson.attr('data-chat') +"'><span>To: <span class='name'>" + currentPerson.find('.name').text() + "</span></span></div>");
+                    var top = $("<div class='top' pagesid='" + currentPerson.attr('pagesid') +"' id='curent_post' post='"+ currentPerson.attr('data-chat') +"'><span>To: <span class='name'>" + currentPerson.find('.name').text() + "</span></span></div>");
                     $(".wrapper .container .right").append(top);
 
                     // chat
-                    var chat = $("<div class='chat' id='chat_" + currentPerson.attr('data-chat') + "' data-chat='" + currentPerson.attr('data-chat') + "''>");
+                    var chatcha = $("<div class='chat' id='chat_" + currentPerson.attr('data-chat') + "' data-chat='" + currentPerson.attr('data-chat') + "''>");
+                    var chat = $("<div></div>");
                     chat.append("<div class='conversation-start'><span>" + getData[0].created_at + "</span></div>");
                     var like = 'like';
                     var hide = 'hide';
@@ -144,9 +150,9 @@
 	                        chat.append(div);
                     	}
                     	else{	                    		
-	                        var div = "<div class='bubble me'>";
+	                        var div = "<div class='bubble me' id='k_"+ entry.oid +"'>";
                             if ( typeof entry.comments != "undefined" && entry.comments !=null ){
-                                div=div+"<div>"+entry.comments+"</div>";
+                                div=div+"<div class='mycomment'>"+entry.comments+"</div>";
                             }
                             if ( typeof entry.attackment != "undefined" && entry.attackment != null ){
                                 div=div+"<p><img src='"+entry.attackment+"'>";
@@ -161,16 +167,16 @@
                             }
 	                        chat.append(div);
                     	}
+                        chatcha.append(chat);
+                        chatcha.perfectScrollbar();
                     });
-                    $(".wrapper .container .right").append(chat);
+                    $(".wrapper .container .right").append(chatcha);
 
                     // write
                     $(".wrapper .container .right").append(
                         "<div class='write'>" +
-                        "<a href='#' id='mofile' class='write-link attach'></a>" +
                         "<input type='text' id='chat_input' parrent='" + currentPerson.attr('data-chat') + "'/>" +
-                        "<a href='javascript:;' class='write-link smiley'></a>" +
-                        "<a href=javascript:;' class='write-link send'></a></div>"
+                        "<a href='#' id='mofile' class='write-link attach'></a></div>"
                     );
                     ///////////
                     $('.chat[data-chat = ' + findChat + ']').addClass('active-chat');
@@ -179,7 +185,34 @@
                     alert('Mạng cùi bắp, tắt modem mở lại giùm cái.');
                 }
             });
-        }
+             $.ajax({
+                url: "/laravel/public/search",
+                type: 'GET',
+                cache: false,
+                data: 'q=' + $(this).attr('fb-id') + '&type=onecustomer',
+                success: function(getData) {
+                    if (getData.length === 0){
+                        $('#customer-name .customer_name').val(currentPerson.attr('fb-name'));
+                        $('#Salepage').val(currentPerson.attr('pagesid'));
+                        $('#Cus_fbid').val(currentPerson.attr('fb-id'));
+                    }
+                    else{
+                        $('#Salepage').val(currentPerson.attr('pagesid'));
+                        $('#Cus_id').val(getData.oid);
+                        $('#Cus_fbid').val(getData.fbid);
+                        $('#customer-name').children('input').val(getData.name);  
+                        $('#customer-name').children('select').val(getData.province).trigger("change");
+                        $('#district-').children('input').val(getData.tel);  
+                        $('#district-').children('select').val(getData.district).trigger("change");
+                        $('#email-').children('input').val(getData.email); 
+                        $('#customer_add-').children('textarea').val(getData.address); 
+                    }
+                },
+                error: function() {
+                    alert('Mạng cùi bắp, tắt modem mở lại giùm cái.');
+                }
+            });
+        }            
     });
 
     [].slice.call(document.querySelectorAll('.tabs')).forEach(function(el) {
@@ -188,38 +221,54 @@
 
     $("#chat_input").live("keyup", function(e) {
         if (e.which == 13) {
-            //$('#chat_' + $(this).attr('parrent')).append("<div class='bubble me'>" + $(this).val() + "</div>");
+            $('#chat_' + $(this).attr('parrent')).append("<div class='bubble me wait' >" + $(this).val() + "</div>");
             var target = $(this);
             var value = target.val();
             target.val('');
             $.ajax({
-                url: "https://75d24456.ngrok.io/laravel/public/chat",
+                url: "/laravel/public/chat",
                 type: 'GET',
                 cache: false,
                 data: 'oid=' + target.attr('parrent') + "&chatdata=" + value,
                 success: function(getData) {
-                    //////
+                    var json = JSON.parse(getData);
+                    $('.wait').each(function(entry) {
+                        if ( $(this, 'mycomment').html() == value){
+                            $(this).attr('class','bubble me');
+                            $(this).attr('id','k_'+json[0].id);
+                            if (json[0].type == 'comments'){
+                                $(this).append("<div class='bar'>"+
+                                        "<a id='delete' class='icon icon-delete' data_id ='"+json[0].id+
+                                        "'></a></div></div>"
+                                    );
+                            }
+                        }
+                    });
                 },
                 error: function() {
-                    alert('Mạng cùi bắp, tắt modem mở lại giùm cái.');
+                    $('.wait').each(function(entry) {
+                        if ( $(this, 'mycomment').html() == value){
+                            $(this, 'mycomment').html('không gửi được');
+                        }                        
+                    });
                 }
             });
         }
     });
 
     try {
-        var socket = new WebSocket('ws://localhost:6868?aid=123');
+        //var socket = new WebSocket('wss://fc500d6a.ngrok.io?aid='+user_id);
+        var socket = new WebSocket('wss://185de901.ngrok.io?aid='+user_id);
         socket.onopen = function(e) {
             console.log("Connection established!");
             console.log(e);
         };
 
-        socket.onclose = function (evt) {
-            alert("aaaa");
-        };
-
         socket.onmessage = function(e) {
             var json = JSON.parse(e.data);
+            if ( typeof json.comments == "undefined" || json.comments ==null){
+                json.comments = 'Hình ảnh';
+            }
             if ('delete' in json){
                 json.oid.forEach(function(entry) {
                     $('#k_'+entry.oid).remove();
@@ -254,7 +303,7 @@
                         var div = "<div class='bubble you' id='k_"+ json.oid +"'>"+
                                             "<div class='bar_name'>"+json.sender_name+"</div>"+
                                             "<div>";
-                         if ( typeof json.comments != "undefined" && json.comments !=null ){
+                        if ( typeof json.comments != "undefined" && json.comments !=null ){
                                 div=div+"<div>"+json.comments+"</div>";
                             }
                         if ( typeof json.attackment != "undefined" && json.attackment != null ){
@@ -274,22 +323,31 @@
                         $("#chat_" + json.parent_id).append(div);
                     }
                     else{
-                        var div = "<div class='bubble me'>";
+                        if ( $('#k_'+json.oid).length == 0) {
+                            var div = "<div class='bubble me' id='#_"+ json.oid +"'>";
                             if ( typeof json.comments != "undefined" && json.comments !=null ){
-                                div=div+"<div>"+json.comments+"</div>";
+                                div=div+"<div class='mycomment'>"+json.comments+"</div>";
                             }
                             if ( typeof json.attackment != "undefined" && json.attackment != null ){
                                 div=div+"<p><img src='"+json.attackment+"'>";
                             }
-                            div=div+"</div>";                            
-                        $("#chat_" + json.parent_id).append(div);
+                            if (json.type == 'message'){
+                                div=div+"</div>";
+                            }
+                            else{
+                                div=div+"<div class='bar'>"+
+                                        "<a id='delete' class='icon icon-delete' data_id ='"+json.oid+
+                                        "'></a></div></div>";
+                            }                            
+                            $("#chat_" + json.parent_id).append(div);
+                        }
                     }
                     console.log(e);
                 }
                 if (json.Isroot == 1) {
                     if (json.type == 'comment') {
                         $("#section-underline-1 .people").prepend(
-                            "<div class='person' data-chat=" + json.oid + " id=" + json.oid + ">" +
+                            "<div class='person' pagesid='" + json.page +"' data-chat=" + json.oid + " id=" + json.oid + ">" +
                             "<img src='https://s13.postimg.org/ih41k9tqr/img1.jpg' alt='' />" +
                             "<span class='name'>" + json.sender_name + "</span>" +
                             "<span class='time preview'>" + json.created_at + "</span>" +
@@ -326,7 +384,7 @@
                     canvas.width = img.width;
                     canvas.height = img.height;
                     context.drawImage(img, 0, 0, img.width, img.height);
-                    fbUpload($('#curent_post').attr('post'));
+                    fbUpload($('#curent_post').attr('post'),$('#curent_post').attr('pagesid'));
                     //context.clearRect(0, 0, canvas.width, canvas.height);
                 });
                 img.src = e.target.result;
@@ -339,23 +397,22 @@
     }
 
     $("#selectedFile").live("change", function(e) {
+
         console.log(0);
-        readURL(this);                   
+        readURL(this); 
+
     });
 
-
-     $("#mofile").live("click", function(e) {
-        $('#selectedFile').click();                                         
-        $('#selectedFile').onclick = function () {
-            this.value = null;
-        };
+              
+    $("#mofile").live("click", function(e) {     
+        $('#selectedFile').click();              
     });
     
-    function fbUpload(oid) {
+    function fbUpload(oid,pageid) {
         var dataURL = canvas.toDataURL('image/jpeg', 1.0);
         var blob = dataURItoBlob(dataURL);
         var formData = new FormData();
-        formData.append('access_token', pagekey);
+        formData.append('access_token', keylist['Pages'+pageid]);
         formData.append('attachment', blob);
 
 
@@ -382,4 +439,420 @@
         for (var i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
         return new Blob([ab], { type: 'image/jpeg' });
     }
+    /* Set rates + misc */
+    var taxRate = 0.05;
+    var shippingRate = 15.00; 
+    var fadeTime = 300;
+
+
+    /* Assign actions */
+    $('.product-quantity input').live('keyup change', function() {
+      updateQuantity(this);
+    });
+
+    $('.product-price input').live('keyup change', function() {
+      updateQuantity(this);
+    });
+
+    $('.product-removal input').live('click', function() {
+      removeItem(this);
+    });
+
+
+    /* Recalculate cart */
+    function recalculateCart()
+    {
+      var subtotal = 0;
+      
+      /* Sum up row totals */
+      $('.product').each(function () {
+        subtotal += parseFloat($(this).children('.product-line-price').text());
+      });
+      
+      /* Calculate totals */
+      var tax = subtotal * taxRate;
+      var shipping = (subtotal > 0 ? shippingRate : 0);
+      var total = subtotal + tax + shipping;
+      
+      /* Update totals display */
+      $('.totals-value').fadeOut(fadeTime, function() {
+        $('#cart-subtotal').html(subtotal.toLocaleString());
+        $('#hidesubtotal').attr('value',subtotal);
+        $('#cart-tax').html(tax.toLocaleString());
+        $('#hidevat').attr('value',tax);
+        $('#cart-shipping').html(shipping.toLocaleString());
+        $('#hideship').attr('value',shipping);
+        $('#cart-total').html(total.toLocaleString());
+        $('#hidetotal').attr('value',total);
+        if(total == 0){
+            if ($('.checkout').is(":visible")){
+                $('.checkout').fadeOut(fadeTime);
+            }
+        }else{
+            if (!$('.checkout').is(":visible")){
+                $('.checkout').fadeIn(fadeTime);
+            }
+        }
+        $('.totals-value').fadeIn(fadeTime);
+      });
+    }
+
+
+    /* Update quantity */
+    function updateQuantity(quantityInput)
+    {
+      /* Calculate line price */
+      var productRow = $(quantityInput).parent().parent();
+      var price = parseFloat(productRow.children('.product-price').children('input').val());
+      var quantity = parseFloat(productRow.children('.product-quantity').children('input').val());
+      var linePrice = price * quantity;
+      productRow.children('.line-amount').children('input').val(linePrice);
+      
+      /* Update line price display and recalc cart totals */
+      productRow.children('.product-line-price').each(function () {
+        $(this).fadeOut(fadeTime, function() {
+          $(this).text(linePrice);
+          recalculateCart();
+          $(this).fadeIn(fadeTime);
+        });
+      });  
+    }
+
+
+    /* Remove item from cart */
+    function removeItem(removeButton)
+    {
+      /* Remove row from DOM and recalc cart total */
+      var productRow = $(removeButton).parent().parent();
+      productRow.slideUp(fadeTime, function() {
+        productRow.remove();
+        recalculateCart();
+      });
+    }
+
+
+    $('.province').append('<option></option>');
+    P.province.forEach(function(entry) {
+        $('.province').append("<option value='"+entry.provinceid+"'>"+entry.name+"</option>");
+    });
+
+    $('.district').append('<option></option>');
+    PL.district.forEach(function(entry) {
+        $('.district').append("<option value='"+entry.districtid+"'>"+entry.name+"</option>");
+    });
+
+    $('.product-select').live('change', function() {
+        var productRow = $(this).parent().parent().parent();
+        var price = parseFloat(JSON.parse($(this).val()).price);
+        productRow.children('.product-price').children('input').val(price);
+        var quantity = parseFloat(productRow.children('.product-quantity').children('input').val());
+        if ( quantity == 0){
+            productRow.children('.product-quantity').children('input').val(1);
+            quantity = 1;
+        }
+        var linePrice = price * quantity;
+        productRow.children('.line-amount').children('input').val(linePrice);
+      
+        /* Update line price display and recalc cart totals */
+        productRow.children('.product-line-price').each(function () {
+            $(this).fadeOut(fadeTime, function() {
+            $(this).text(linePrice);
+            recalculateCart();
+            $(this).fadeIn(fadeTime);
+            });
+        }); 
+    });
+
+    $('.add-product').on('click',function() {
+        var shoppingcart = $(this).parent().parent();
+        var productlist = shoppingcart.children('.product_list');
+        var products = $("<div class='product'><div class='product-image'></div><div class='product-details'><div class='product-title'><select style = 'width: 178px' name='product[]' class='product-select'></select></div></div><div class='product-price'><input name='price[]' type='number' value='0' min='0'></div><div class='product-quantity'><input name='quantity[]'  type='number' value='0' min='0'></div><div class='product-removal'><input type='button' class='remove-product' value='-'></div><div class='line-amount'><input name='amount[]' type='number' style='display: none;''></div><div class='product-line-price'>0</div></div>");
+        products.children('.product-details').children('.product-title').children('.product-select').select2({
+            ajax: {
+            url: "/laravel/public/search",
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+              return {
+                q: params.term, // search term
+                type : 'product',
+                page: params.page
+              };
+            },
+            processResults: function (kaka, params) {
+              // parse the results into the format expected by Select2
+              // since we are using custom formatting functions we do not need to
+              // alter the remote JSON data, except to indicate that infinite
+              // scrolling can be used
+
+              var data = $.map(kaka, function (obj) {
+                  obj.id = obj.id || obj.data_value;
+                  obj.text = obj.text || obj.text;
+
+                  return obj;
+                });
+              params.page = params.page || 1;
+
+              return {
+                results: data,
+                pagination: {
+                  more: true
+                }
+              };
+            },
+            cache: true
+          },
+        escapeMarkup: function (markup) { return markup; }, // let our custom formatter work
+        minimumInputLength: 1,
+        templateResult: formatRepo, // omitted for brevity, see the source of this page
+        templateSelection: formatRepoSelection // omitted for brevity, see the source of this page
+        });
+        productlist.append(products);
+    });
+
+    $("#province").select2({
+        placeholder: "Tỉnh/Thành",
+        allowClear: true
+    });
+
+    $("#district").select2({
+        placeholder: "Quận/Huyện",
+        allowClear: true
+    });
+
+    function formatRepo (repo) {
+        if (repo.loading) return repo.text;
+        var result = JSON.parse(repo.data_value);
+        var markup = "<div class='select2-result-repository clearfix'><div>"+result.name+"</div><div>"+result.price+"</div><div>"+repo.text+"</div></div>";
+
+        return markup;
+    }
+
+    function formatRepoSelection (repo) {
+        return repo.product_name || repo.text;
+    }
+
+    $(".product-select").select2({
+        ajax: {
+        url: "/laravel/public/search",
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          return {
+            q: params.term, // search term
+            type : 'product',
+            page: params.page
+          };
+        },
+        processResults: function (kaka, params) {
+          // parse the results into the format expected by Select2
+          // since we are using custom formatting functions we do not need to
+          // alter the remote JSON data, except to indicate that infinite
+          // scrolling can be used
+
+          var data = $.map(kaka, function (obj) {
+              obj.id = obj.id || obj.data_value;
+              obj.text = obj.text || obj.text;
+
+              return obj;
+            });
+          params.page = params.page || 1;
+
+          return {
+            results: data,
+            pagination: {
+              more: true
+            }
+          };
+        },
+        cache: true
+      },
+      escapeMarkup: function (markup) { return markup; }, // let our custom formatter work
+      minimumInputLength: 1,
+      templateResult: formatRepo, // omitted for brevity, see the source of this page
+      templateSelection: formatRepoSelection // omitted for brevity, see the source of this page
+    });
+    
+    $(".customer_select").select2({
+        ajax: {
+            url: "/laravel/public/search",
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+              return {
+                q: params.term, // search term
+                type : 'customer',
+                page: params.page
+              };
+            },
+            processResults: function (kaka, params) {
+              // parse the results into the format expected by Select2
+              // since we are using custom formatting functions we do not need to
+              // alter the remote JSON data, except to indicate that infinite
+              // scrolling can be used
+
+                var data = $.map(kaka, function (obj) {
+                    obj.id = obj.id || obj.data_value;
+                    obj.text = obj.text || obj.text;
+
+                    return obj;
+                });
+                params.page = params.page || 1;
+
+                return {
+                    results: data,
+                    pagination: {
+                        more: true
+                    }
+                };
+            },
+            cache: true
+        },
+        escapeMarkup: function (markup) { return markup; }, // let our custom formatter work
+        minimumInputLength: 1,
+        templateResult: formatRepo, // omitted for brevity, see the source of this page
+        templateSelection: formatRepoSelection, // omitted for brevity, see the source of this page
+        placeholder: "Chọn khách hàng"
+    });
+
+    $(".customer_select").on('change',function() {
+        var customer_info = $(this).parent().parent();
+        $('#Cus_id').val(JSON.parse($(this).val()).oid);
+        $('#Cus_fbid').val(JSON.parse($(this).val()).fbid);
+        customer_info.children('#customer-name').children('input').val(JSON.parse($(this).val()).name);  
+        customer_info.children('#customer-name').children('select').val(JSON.parse($(this).val()).province).trigger("change");
+        customer_info.children('#district-').children('input').val(JSON.parse($(this).val()).tel);  
+        customer_info.children('#district-').children('select').val(JSON.parse($(this).val()).district).trigger("change");
+        customer_info.children('#email-').children('input').val(JSON.parse($(this).val()).email); 
+        customer_info.children('#customer_add-').children('textarea').val(JSON.parse($(this).val()).address); 
+    });
+
+    $("#form").on("submit", function(e){
+        recalculateCart();
+        $.ajax({
+            url: 'save',
+            type: 'GET',
+            cache: false,
+            data: $('#form').serialize(),
+            success: function(getData) {
+                //alert($('#form').serialize());
+            },
+            error: function() {
+                    alert('Mạng cùi bắp, tắt modem mở lại giùm cái.');
+            }
+        });
+        e.preventDefault();
+        $('#form')[0].reset();
+        $('.remove-product').trigger("click");
+        $("#province").val("").trigger("change");
+        $("#district").val("").trigger("change");
+        $(".customer_select").val("").trigger("change");
+
+    });
+    $('.right_bar').perfectScrollbar();
+
+    var dadpage = 2 ;
+    var dadpage2 = 2 ;
+
+    var template,
+        container,content,height,
+        template2,
+        container2,content2,height2,
+    container = $('#section-underline-1');
+    content =  $('#section-underline-1').children('.people');
+
+    container2 = $('#section-underline-2');
+    content2 =  $('#section-underline-2').children('.people');
+
+    container.scroll(function() {
+        var active;
+        var scrollTop = container.scrollTop();
+        var height = content.height();
+        var containerHeight = content.parent().height();
+        
+        if (active) return;
+        
+        if (height-containerHeight-scrollTop<100) {
+            active=true;
+            addLines(dadpage);
+            active=false;
+        }
+    });
+
+    container2.scroll(function() {
+        var active2;
+        var scrollTop2 = container2.scrollTop();
+        var height2 = content2.height();
+        var containerHeight2 = content2.parent().height();
+        
+        if (active2) return;
+        
+        if (height2-containerHeight2-scrollTop2<100) {
+            active2=true;
+            addLines2(dadpage2);
+            active2=false;
+        }
+    });
+
+    function addLines($dadpage) {
+        $.ajax({
+            url: "/laravel/public/getmoredata",
+            type: 'GET',
+            cache: false,
+            data: 'page=' + dadpage.toString(),
+            success: function(getData) {
+                for(var i=0;i<getData.data.length;i++){
+                    var person = '<div class="person" fb-name= ' + getData.data[i].sender_name + ' fb-id= ' +
+                                getData.data[i].sender_id + ' data-chat= ' + getData.data[i].oid + ' id= '+ getData.data[i].oid + ' pagesid= ' + 
+                                getData.data[i].page + '><img src="https://s13.postimg.org/ih41k9tqr/img1.jpg" alt="" />'+
+                                ' <span class="name"> '+getData.data[i].sender_name + ' </span><span class="time preview"> ' + 
+                                getData.data[i].created_at + ' </span> ';
+                    if ( getData.data[i].comments != null){
+                        person = person + '<span class="preview">' + getData.data[i].comments + '<span></div>';
+                    }
+                    else{
+                        person = person + '<span class="preview">Hình ảnh</span></div>';  
+                    }
+                    content.append(person);
+
+                }
+                dadpage++;
+            },
+            error: function() {
+                    alert('Mạng cùi bắp, tắt modem mở lại giùm cái.');
+                }
+        });
+        //content.append("<a>abc</a>");
+    }
+
+    function addLines2($dadpage) {
+        $.ajax({
+            url: "/laravel/public/getmoredata2",
+            type: 'GET',
+            cache: false,
+            data: 'page=' + dadpage2.toString(),
+            success: function(getData) {
+                for(var i=0;i<getData.data.length;i++){
+                    var person = '<div class="person" fb-name= ' + getData.data[i].sender_name + ' fb-id= ' +
+                                getData.data[i].sender_id + ' data-chat= ' + getData.data[i].oid + ' id= '+ getData.data[i].oid + ' pagesid= ' + 
+                                getData.data[i].page + '><img src="https://s13.postimg.org/ih41k9tqr/img1.jpg" alt="" />'+
+                                ' <span class="name"> '+getData.data[i].sender_name + ' </span><span class="time preview"> ' + 
+                                getData.data[i].created_at + ' </span> ';
+                    if ( getData.data[i].comments != null){
+                        person = person + '<span class="preview">' + getData.data[i].comments + '<span></div>';
+                    }
+                    else{
+                        person = person + '<span class="preview">Hình ảnh</span></div>';  
+                    }
+                    content2.append(person);
+
+                }
+                dadpage2++;
+            },
+            error: function() {
+                    alert('Mạng cùi bắp, tắt modem mở lại giùm cái.');
+                }
+        });
+    }
+
 })();

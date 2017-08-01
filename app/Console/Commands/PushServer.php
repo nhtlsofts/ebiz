@@ -47,14 +47,15 @@ class PushServer extends Command
      */
     public function handle()
     {
-        $loop   = React\EventLoop\Factory::create();
-        $pusher = new Pusher;
+        $loop   = Factory::create();
+        $pusher = new Pusher();
 
         // Listen for the web server to make a ZeroMQ push after an ajax request
         $context = new Context($loop);
         $pull = $context->getSocket(ZMQ::SOCKET_PULL);
-        $pull->bind('tcp://127.0.0.1:55555'); // Binding to 127.0.0.1 means the only client that can connect is itself
-        $pull->on('subscribe', array($pusher, 'onDataSave'));
+        $pull->bind('tcp://127.0.0.1:5555'); // Binding to 127.0.0.1 means the only client that can connect is itself
+
+        $pull->on('message', array($pusher, 'onSend'));
 
         // Set up our WebSocket server for clients wanting real-time updates
         $webSock = new Server($loop);
@@ -62,9 +63,7 @@ class PushServer extends Command
         $webServer = new IoServer(
             new HttpServer(
                 new WsServer(
-                    new WampServer(
-                        $pusher
-                    )
+                    $pusher
                 )
             ),
             $webSock

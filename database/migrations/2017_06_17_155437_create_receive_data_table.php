@@ -23,7 +23,7 @@ class CreateReceiveDataTable extends Migration
             $table->string('sender_name',100)->nullable();
             $table->string('receive_id',100);
             $table->string('receive_name',100)->nullable();
-            $table->string('user_id',100);
+            $table->string('facebookuser',100);
             $table->string('post_id',100);
             $table->string('page',100);
             $table->string('attackment',500)->nullable();

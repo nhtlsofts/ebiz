@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\DB;
 use App\ReceiveData;
 use App\product;
 use App\Customer;
-use App\FacebookPages;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -42,14 +41,9 @@ class GetDataController extends BaseController
                     $join->on('x1.created_at', '=', 'x.createtime');                        
                     $join->on('x1.parent_id', '=', 'x.parent_id'); 
                 })
-                ->leftJoin('customer', function ($join) use ($table) {
-                    $join->on('customer.fbid', '=', $table.'.sender_id')
-                        ->on('customer.facebookuser', '=', $table.'.facebookuser');
-                })
                 ->leftJoin( 'facebook_pages' , 'facebook_pages.pagesid' , '=' , 'x1.page' )
                 ->where([[$table.'.Isroot' , 1] , ['facebook_pages.isactive', 1 ] , ['x1.facebookuser',$user_id]])
-                ->whereRaw('ifnull(customer.banned,0) = 0 ')
-                ->orderBy('created_at', 'desc')->take(15)->get()->toArray();
+                ->get()->toArray();
 
                     //where (attackment is null or attackment like '') and comments not like ''
 
@@ -59,77 +53,6 @@ class GetDataController extends BaseController
 
         return view('showhang',['manages' => $data,'province' => $province,'district' => $district]);
 	}
-    function getmoredata(LaravelFacebookSdk $fb,Request $request)
-    {
-        $page = $request->input('page',1);
-        Paginator::currentPageResolver(function() use ($page) {
-            return $page;
-        });
-
-        //$fb->setDefaultAccessToken(Session::get('user_id'));
-        $user_id = Session::get('user_id');
-        $table = 'receive_data_'.$user_id;
-        $data = DB::table($table)
-                ->select('x1.parent_id',$table.'.oid','x1.type','x1.comments','x1.isroot',$table.'.sender_id',$table.'.sender_name','x1.facebookuser',
-                    'x1.post_id','x1.page','x1.data','x1.created_at','x1.updated_at')
-                ->leftJoin(DB::raw("(
-                    select parent_id,max(created_at) as createtime
-                    from receive_data_".$user_id."
-                    where parent_id <> ''
-                    group by parent_id
-                    ) x"), $table.'.oid', '=', 'x.parent_id')
-                ->join(DB::raw("(
-                    select * 
-                    from receive_data_".$user_id."
-                    ) x1"), function($join)
-                {
-                    $join->on('x1.created_at', '=', 'x.createtime');                        
-                    $join->on('x1.parent_id', '=', 'x.parent_id'); 
-                })
-                ->leftJoin( 'facebook_pages' , 'facebook_pages.pagesid' , '=' , 'x1.page' )
-                ->leftJoin('customer', function ($join) use ($table) {
-                    $join->on('customer.fbid', '=', $table.'.sender_id')
-                        ->on('customer.facebookuser', '=', $table.'.facebookuser');
-                })
-                ->where([[$table.'.Isroot' , 1] , ['facebook_pages.isactive', 1 ] ,[$table.'.type','comment'], ['x1.facebookuser',$user_id]])
-                ->whereRaw('ifnull(customer.banned,0) = 0 ')
-                ->orderBy('created_at', 'desc')
-                ->paginate(15)->toArray();
-        return $data;
-    }
-    function getmoredata2(LaravelFacebookSdk $fb,Request $request)
-    {
-        $page = $request->input('page',1);
-        Paginator::currentPageResolver(function() use ($page) {
-            return $page;
-        });
-
-        //$fb->setDefaultAccessToken(Session::get('user_id'));
-        $user_id = Session::get('user_id');
-        $table = 'receive_data_'.$user_id;
-        $data = DB::table($table)
-                ->select('x1.parent_id',$table.'.oid','x1.type','x1.comments','x1.isroot',$table.'.sender_id',$table.'.sender_name','x1.facebookuser',
-                    'x1.post_id','x1.page','x1.data','x1.created_at','x1.updated_at')
-                ->leftJoin(DB::raw("(
-                    select parent_id,max(created_at) as createtime
-                    from receive_data_".$user_id."
-                    where parent_id <> ''
-                    group by parent_id
-                    ) x"), $table.'.oid', '=', 'x.parent_id')
-                ->join(DB::raw("(
-                    select * 
-                    from receive_data_".$user_id."
-                    ) x1"), function($join)
-                {
-                    $join->on('x1.created_at', '=', 'x.createtime');                        
-                    $join->on('x1.parent_id', '=', 'x.parent_id'); 
-                })
-                ->leftJoin( 'facebook_pages' , 'facebook_pages.pagesid' , '=' , 'x1.page' )
-                ->where([[$table.'.Isroot' , 1] , ['facebook_pages.isactive', 1 ] ,[$table.'.type','message'], ['x1.facebookuser',$user_id]])
-                ->orderBy('created_at', 'desc')
-                ->paginate(15)->toArray();
-        return $data;
-    }
     function getdetail(LaravelFacebookSdk $fb)
     {
 
@@ -145,6 +68,7 @@ class GetDataController extends BaseController
                     $q  ->where('comments','<>','')
                         ->orWhereNotNull('attackment');
                 })
+                ->orderBy('created_at', 'asc')
                 ->get()->toArray();
 
         return $data;
@@ -187,16 +111,15 @@ class GetDataController extends BaseController
         // list all users, with 10 users per page, on page 5
 
         if ($type == 'product'){
-            $return = Product::select('product_name', DB::raw('CONCAT("{\"name\":\"", product_name, "\",\"price\":\"" , price , "\",\"product_code\":\"" , product_code , "\",\"id\":\"" , id , "\",\"unit\":\"" , unit , "\"}") AS data_value'),DB::raw('"'.$term.'" as text'))->where([['facebookuser',$user_id],['product_name','like','%'.$term.'%']])->paginate(5)->toArray();
+            $return = Product::select('product_name', DB::raw('CONCAT("{\"name\":\"", product_name, "\",\"price\":\"" , price , "\",\"product_code\":\"" , product_code , "\",\"unit\":\"" , unit , "\"}") AS data_value'),DB::raw('"'.$term.'" as text'))->where([['facebookuser',$user_id],['product_name','like','%'.$term.'%']])->paginate(5)->toArray();
         }
 
         if ($type == 'customer'){
-             $return = customer::select('name', DB::raw('CONCAT("{\"oid\":\"", oid, "\",\"fbid\":\"" , ifNull(fbid,\'\') , "\",\"name\":\"" , name , "\",\"email\":\"" , email , "\",\"address\":\"" , address , "\",\"tel\":\"" , tel , "\",\"province\":\"" , province , "\",\"district\":\"" , district , "\",\"banned\":\"" , banned , "\",\"banned_date\":\"" , banned_date , "\"}") AS data_value'),DB::raw('"'.$term.'" as text'))->where([['facebookuser',$user_id],['name','like','%'.$term.'%']])->paginate(5)->toArray();
+             $return = customer::select('name', DB::raw('CONCAT("{\"oid\":\"", oid, "\",\"fbid\":\"" , ifNull(fbid,\'\') , "\",\"name\":\"" , name , "\",\"email\":\"" , email , "\",\"address\":\"" , address , "\",\"tel\":\"" , tel , "\",\"province\":\"" , province , "\",\"district\":\"" , district , "\"}") AS data_value'),DB::raw('"'.$term.'" as text'))->where([['facebookuser',$user_id],['name','like','%'.$term.'%']])->paginate(5)->toArray();
         }
         if ($type == 'onecustomer'){
-             $return = customer::where([['facebookuser',$user_id],['fbid',$term],['banned',0]])->first();
+             $return = customer::where([['facebookuser',$user_id],['fbid',$term]])->first();
         }
-        /// return data
         if ($type == 'onecustomer'){
             return $return;
         }
@@ -233,7 +156,7 @@ class GetDataController extends BaseController
         if(!isset($total)){
             $total = 0;
         }
-        $data = Receipt::select('receipt.id','receipt.code','receipt.customer_id as customer_id','customer.name as customername',
+        $data = Receipt::select('receipt.oid','receipt.customer_id as customer_id','customer.name as customername',
             'customer.address as customeradd','district.name as dname','province.name as pname',
             'customer.tel as tel','receipt.total as total','receipt.shipcost as shipcost',
             DB::raw('receipt.discount+receipt.detaildiscount as totaldiscount'),'receipt.created_at as issue_date'
@@ -280,8 +203,8 @@ class GetDataController extends BaseController
         return $data;
     }
     function DeleteReceiptList(Request $request){
-        ReceiptDetail::where([['receipt',$request->input('id')],['facebookuser',Session::get('user_id')]])->delete();
-        Receipt::where([['id',$request->input('id')],['facebookuser',Session::get('user_id')]])->delete();
+        ReceiptDetail::where('receipt',$request->input('oid'))->delete();
+        Receipt::where('oid',$request->input('oid'))->delete();
     }
 
     //Product
@@ -313,17 +236,12 @@ class GetDataController extends BaseController
         return $data;
     }
     function DeleteProductList(Request $request){
-        Product::where('id',$request->input('id'))->delete();
+        Product::where('oid',$request->input('oid'))->delete();
     }
     function UpdateProductList(Request $request){
         $user_id = Session::get('user_id');
-        $code = $request->input('product_code');
-        if (!isset($code)){
-            $tmpcode = Product::select( DB::raw('MAX(`product_code`) AS number'))->where('facebookuser',$user_id)->first();
-            $code = sprintf("%'.04d", (int)$tmpcode['number']+1);
-        }
-        Product::where('id',$request->input('id'))
-                ->update(['product_code' => $code,
+        Product::where('oid',$request->input('oid'))
+                ->update(['product_code' => $request->input('product_code'),
                 'product_name' => $request->input('product_name'),
                 'price' => $request->input('price'),
                 'unit' => $request->input('unit')]);
@@ -331,29 +249,14 @@ class GetDataController extends BaseController
     function InsertProductList(Request $request){
         $user_id = Session::get('user_id');
         $product = new Product();
-        $code = $request->input('product_code');
-        if (!isset($code)){
-            $tmpcode = Product::select( DB::raw('MAX(`product_code`) AS number'))->where('facebookuser',$user_id)->first();
-            $code = sprintf("%'.04d", (int)$tmpcode['number']+1);
-        }
-        $product->id = $request->input('id');
-        $product->product_code = $code;
+        $product->oid = $request->input('product_code');
+        $product->product_code = $request->input('product_code');
         $product->product_name = $request->input('product_name');
         $product->price = $request->input('price');
         $product->unit = $request->input('unit');
         $product->facebookuser=$user_id;
-        $product->picture=null;
-        //try {
-            $product->save();            
-       /* }
-        catch(\Illuminate\Database\QueryException $ex){ 
-            $error = str_replace('product_code','Mã mặt hàng',$ex->errorInfo[2]);
-            $error = str_replace('product_name','Tên mặt hàng',$error);
-            $error = str_replace('unit','Đơn vị tính',$error);
-            $error = str_replace('price','Giá',$error);
-            $error = str_replace('picture','hình ảnh',$error);
-            throw new \Exception($error);
-        }*/
+        $product->picture='';
+        $product->save();
     }
 
     //customer
@@ -361,35 +264,6 @@ class GetDataController extends BaseController
         $user_id = Session::get('user_id');
         if(!isset($price)){
             $price = 0;
-        }
-        $fromdate=$request->input('banned_date')['from'];
-        $todate=$request->input('banned_date')['to'];
-        if(!isset($fromdate)){
-            $fromdate1 = '1990-01-01 00:00:00';
-        } 
-        else{
-            $fromdate1 = $fromdate . ' 00:00:00';
-        }
-        if(!isset($todate)){
-            $todate1 = '2300-01-01 00:00:00';
-        } 
-        else{
-            $todate1 = $todate . ' 23:59:59';
-        }
-        $banned =$request->input('banned');
-        if ($banned == 'true'){
-            $banned = 1;
-        }
-        if ($banned == 'false'){
-            $banned = 0;
-        }
-        $district=$request->input('district');
-        if($district=='0'){
-            $district=null;
-        }
-        $province=$request->input('province');
-        if($province=='0'){
-            $province=null;
         }
         $data = Customer::where(function ($query) use ($request) {
                 $query->where('name','like','%'.$request->input('name').'%')
@@ -407,21 +281,13 @@ class GetDataController extends BaseController
                 $query->where('address','like','%'.$request->input('address').'%')
                     ->orWhereRaw('"'.$request->input('address').'"=""');
             })  
-            ->where(function ($query) use ($district) {
-                $query->where('district','like','%'.$district.'%')
-                    ->orWhereRaw('"'.$district.'"=""');
+            ->where(function ($query) use ($request) {
+                $query->where('district','like','%'.$request->input('district').'%')
+                    ->orWhereRaw('"'.$request->input('districtid').'"=""');
             })  
-            ->where(function ($query) use ($province) {
-                $query->where('province','like','%'.$province.'%')
-                    ->orWhereRaw('"'.$province.'"=""');
-            })  
-            ->where(function ($query) use ($banned) {
-                $query->where('banned',$banned)
-                    ->orWhereRaw('"'.$banned.'"=""');
-            })
-            ->where(function ($query) use ($fromdate1,$todate1,$fromdate,$todate) {
-                $query->whereBetween('banned_date',[$fromdate1,$todate1]) 
-                    ->orWhereRaw('("'.$fromdate.'"="" and "' .$todate.'"="")');
+            ->where(function ($query) use ($request) {
+                $query->where('province','like','%'.$request->input('province').'%')
+                    ->orWhereRaw('"'.$request->input('provinceid').'"=""');
             })
             ->where('facebookuser',$user_id)         
             ->get()
@@ -431,77 +297,15 @@ class GetDataController extends BaseController
     function DeleteCustomerList(Request $request){
         Customer::where('oid',$request->input('oid'))->delete();
     }
-    function UpdateCustomerList(LaravelFacebookSdk $fb,Request $request){
+    function UpdateCustomerList(Request $request){
         $user_id = Session::get('user_id');
-        $banned =$request->input('banned');
-        $baned_date=null;
-        if ($banned == 'true'){
-            $banned = 1;
-            $baned_date = date("Y-m-d H:i:s");
-            if ( $request->input('fbid') != null ) {
-            //////////////////////// ban nó
-                $pageids = FacebookPages::select('pagesid','access_token')->where([['user_id',$user_id],['isactive',1]])->get()->toArray();
-                foreach ($pageids as $page) {
-                    $fb->setDefaultAccessToken($page['access_token']);
-                    $requeststring = $fb->request(
-                    'POST',
-                    '/'.$page['pagesid'].'/blocked',
-                    array(
-                      'asid' => [$request->input('fbid')]
-                    ));
-                    try {
-                        $response = $fb->getClient()->sendRequest($requeststring);
-                    } catch(Facebook\Exceptions\FacebookResponseException $e) {
-                        // When Graph returns an error
-                        echo 'Graph returned an error: ' . $e->getMessage();
-                        exit;
-                    } catch(Facebook\Exceptions\FacebookSDKException $e) {
-                        // When validation fails or other local issues
-                        echo 'Facebook SDK returned an error: ' . $e->getMessage();
-                        exit;
-                    }
-                }
-            //////////////////////////////
-            }
-        }
-        if ($banned == 'false'){
-            $banned = 0;
-            $baned_date = $request->input('banned_date');
-            if ( $request->input('fbid') != null ) {
-            //////////////////////// ban nó
-                $pageids = FacebookPages::select('pagesid','access_token')->where('user_id',$user_id)->get()->toArray();
-                foreach ($pageids as $page) {
-                    $fb->setDefaultAccessToken($page['access_token']);
-                    $requeststring = $fb->request(
-                    'DELETE',
-                    '/'.$page['pagesid'].'/blocked',
-                    array(
-                      'user' => $request->input('fbid')
-                    ));
-                    try {
-                        $response = $fb->getClient()->sendRequest($requeststring);
-                    } catch(Facebook\Exceptions\FacebookResponseException $e) {
-                        // When Graph returns an error
-                        echo 'Graph returned an error: ' . $e->getMessage();
-                        exit;
-                    } catch(Facebook\Exceptions\FacebookSDKException $e) {
-                        // When validation fails or other local issues
-                        echo 'Facebook SDK returned an error: ' . $e->getMessage();
-                        exit;
-                    }
-                }
-            //////////////////////////////
-            }
-        }
         Customer::where('oid',$request->input('oid'))
                 ->update(['name' => $request->input('name'),
                 'email' => $request->input('email'),
                 'tel' => $request->input('tel'),
                 'address' => $request->input('address'),
                 'district' => $request->input('district'),
-                'province' => $request->input('province'),
-                'banned' => $banned,
-                'banned_date' => $baned_date]);
+                'province' => $request->input('province')]);
     }
     function createcustomercode($user_id)
     {
@@ -521,7 +325,6 @@ class GetDataController extends BaseController
         $Customer->tel=$request->input('tel');
         $Customer->province=$request->input('district');
         $Customer->district=$request->input('province');
-        $Customer->banned=0;
         $Customer->save();
     }
 }

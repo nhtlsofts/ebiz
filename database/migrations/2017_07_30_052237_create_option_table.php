@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateFacebookPagesTable extends Migration
+class CreateOptionTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,13 +13,11 @@ class CreateFacebookPagesTable extends Migration
      */
     public function up()
     {
-        Schema::create('facebook_pages', function (Blueprint $table) {  
-            $table->primary('pagesid');          
-            $table->string('pagesname',100);
-            $table->text('access_token');
+         Schema::create('option', function (Blueprint $table) {
+            $table->string('pageid',50)->primary();
+            $table->string('facebookuser',50);
+            $table->boolean('autohideemailandphone');
             $table->timestamps();
-            $table->string('user_id',100);
-            $table->boolean('isactive');
         });
     }
 
@@ -30,6 +28,6 @@ class CreateFacebookPagesTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('facebook_pages');
+        //
     }
 }

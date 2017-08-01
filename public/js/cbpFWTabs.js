@@ -63,6 +63,10 @@
 		this.current = idx != undefined ? idx : this.options.start >= 0 && this.options.start < this.items.length ? this.options.start : 0;
 		this.tabs[ this.current ].className = 'tab-current';
 		this.items[ this.current ].className = 'content-current';
+		$('#section-underline-1').perfectScrollbar('destroy');
+		$('#section-underline-1').perfectScrollbar();				
+		$('#section-underline-2').perfectScrollbar('destroy');
+		$('#section-underline-2').perfectScrollbar();
 	};
 
 	// add to global namespace

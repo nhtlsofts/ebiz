@@ -15,8 +15,9 @@ class LoginController extends BaseController
 	    // Optional permissions
 	    $login_link = $fb
 	            ->getRedirectLoginHelper()
-	            ->getLoginUrl('http://75d24456.ngrok.io/laravel/public/facebook/callback', $permissions);
-	    
-	    echo '<a href="' . $login_link . '">Log in with Facebook</a>';
+	            ->getLoginUrl('http://'.env('LINK').'/laravel/public/facebook/callback', $permissions);
+
+	   	return view('login',['link' => $login_link]);
+
 	}
 }

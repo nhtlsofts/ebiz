@@ -28,10 +28,6 @@ Route::get('/regis', 'RegisterController@Register');
 
 Route::any('/take', 'TakeController@Take');
 
-Route::get('/getdata','GetDataController@getdata');
-
-Route::any('/getdetail','GetDataController@getdetail');
-
 Route::any('/chat','TakeController@onChat');
 
 Route::any('/picture','TakeController@onPicture');
@@ -43,3 +39,55 @@ Route::any('/delete','TakeController@onDelete');
 Route::any('/hide','TakeController@onHide');
 
 Route::any('/inbox','TakeController@onInbox');
+
+Route::any('/save','SaveReceiptController@Save');
+
+Route::any('/search','GetDataController@search');
+
+Route::get('/getdata','GetDataController@getdata');
+
+Route::get('/getmoredata','GetDataController@getmoredata');
+
+Route::any('/getdetail','GetDataController@getdetail');
+
+Route::any('/searchReceiptList','GetDataController@searchReceiptList');
+
+Route::any('/DeleteReceiptList','GetDataController@DeleteReceiptList');
+
+Route::any('/searchProductList','GetDataController@searchProductList');
+
+Route::any('/UpdateProductList','GetDataController@UpdateProductList');
+
+Route::any('/DeleteProductList','GetDataController@DeleteProductList');
+
+Route::any('/InsertProductList','GetDataController@InsertProductList');
+
+Route::any('/searchCustomerList','GetDataController@searchCustomerList');
+
+Route::any('/UpdateCustomerList','GetDataController@UpdateCustomerList');
+
+Route::any('/DeleteCustomerList','GetDataController@DeleteCustomerList');
+
+Route::any('/InsertCustomerList','GetDataController@InsertCustomerList');
+
+Route::any('/getProvince','GetDataController@getProvince');
+
+Route::any('/getDistrict','GetDataController@getDistrict');
+
+Route::any('/receiptlist','ReceiptListController@get');
+
+Route::any('/productlist','ProductListController@get');
+
+Route::any('/customerlist','CustomerListController@get');
+
+Route::any('/receiptdetail','ReceiptDetailListController@get');
+
+Route::any('/more','MoreController@get');
+
+Route::any('/logout','LogOutController@logout');
+
+Route::any('/option','OptionController@get');
+
+Route::any('/SearchOption','OptionController@SearchOption');
+
+Route::any('/UpdateOption','OptionController@UpdateOption');

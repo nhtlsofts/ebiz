@@ -20,10 +20,10 @@
     			$_SESSION = Session::all();
     			echo "var keylist=[];";
     			foreach ($_SESSION as $key=>$val){
-    				if (strpos($key,'ages') > 0){
+    				if (strpos($key,'ages')){
     					echo "keylist['" . str_replace(' ','',$key). "'] = '".$val."';";
     				}
-    				if (strpos($key,'ser_id') > 0){
+    				if ($key == 'user_id'){
     					echo "var user_id = '".$val."';";
     				}
     			}

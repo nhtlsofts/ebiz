@@ -8,62 +8,87 @@ use SammyK\LaravelFacebookSdk\LaravelFacebookSdk;
 use App\FacebookPages;
 use Illuminate\Support\Facades\Session;
 
+
 class RegisterController extends BaseController
 {
 
     function Register(LaravelFacebookSdk $fb,Request $request) {
 
-	    $pageid=$request->input("key");
-	  	$pagekey=FacebookPages::where('pagesid',$pageid)->first()->access_token;
 
-	  	Session::put('page_id',$pageid);
-	  	Session::put('page_key',$pagekey);
+	    $pageid=$request->input("oid");
+	    $type=$request->input("check");
 
-		$fb->setDefaultAccessToken(env("FACEBOOK_APP_ID")."|".env("FACEBOOK_APP_SECRET"));
-	  	$requeststring = $fb->request(
-	    'POST',
-	    '/'.$pageid.'/subscriptions',
-	    array(
-	      'object' => 'page',
-	      'verify_token' => 'sad',
-	      'callback_url' => 'https://75d24456.ngrok.io/laravel/public/take',
-	      'fields' => 'feed,conversations'
-	    )
-	  );
+	    //đăng ký
+	    if( isset($pageid) && $type == 'true'){
+		  	$pagekey=FacebookPages::where('pagesid',$pageid)->first()->access_token;
+		  	// gắn key cho từng page
+		  	Session::put((string) 'Pages'.$pageid,$pagekey);
 
-	  try {
-	    $response = $fb->getClient()->sendRequest($requeststring);
-	  } catch(Facebook\Exceptions\FacebookResponseException $e) {
-	    // When Graph returns an error
-	    echo 'Graph returned an error: ' . $e->getMessage();
-	    exit;
-	  } catch(Facebook\Exceptions\FacebookSDKException $e) {
-	    // When validation fails or other local issues
-	    echo 'Facebook SDK returned an error: ' . $e->getMessage();
-	    exit;
-	  }
-	  $graphNode = $response->getGraphNode();
+			$fb->setDefaultAccessToken(env("FACEBOOK_APP_ID")."|".env("FACEBOOK_APP_SECRET"));
+		  	$requeststring = $fb->request(
+			    'POST',
+			    '/'.$pageid.'/subscriptions',
+			    array(
+			      'object' => 'page',
+			      'verify_token' => 'sad',
+			      'callback_url' => 'https://'.env("WAMP").'.ngrok.io/laravel/public/take',
+			      'fields' => 'feed,conversations,messages,message_echoes'
+			    )
+		  	);
+		  	try {
+		    	$response = $fb->getClient()->sendRequest($requeststring);
+		  	} catch(Facebook\Exceptions\FacebookResponseException $e) {
+			    // When Graph returns an error
+			    echo  'Graph returned an error: ' . $e->getMessage();
+			    exit;
+		  	} catch(Facebook\Exceptions\FacebookSDKException $e) {
+			    // When validation fails or other local issues
+			    echo  'Facebook SDK returned an error: ' . $e->getMessage();
+			    exit;
+		  	}
 
-	  //dk page
-	  // page token
-	  $fb->setDefaultAccessToken($pagekey);
-	  $requeststring = $fb->request(
-	    'POST',
-	    '/'.$pageid.'/subscribed_apps'
-	  );
+		  	//dk page
+		  	// page token
+		  	$fb->setDefaultAccessToken($pagekey);
+		  	$requeststring = $fb->request(
+		    	'POST',
+		    	'/'.$pageid.'/subscribed_apps'
+		  	);
+		  	try {
+		    	$response = $fb->getClient()->sendRequest($requeststring);
+		  	} catch(Facebook\Exceptions\FacebookResponseException $e) {
+		    	// When Graph returns an error
+		    	echo 'Graph returned an error: ' . $e->getMessage();
+		    	exit;
+		  	} catch(Facebook\Exceptions\FacebookSDKException $e) {
+		    	// When validation fails or other local issues
+		    	echo 'Facebook SDK returned an error: ' . $e->getMessage();
+		    	exit;
+		  	}
+		  
+		  	FacebookPages::where('pagesid',$pageid)->update(['isactive'=>true]);		
+		}
 
-	  try {
-	    $response = $fb->getClient()->sendRequest($requeststring);
-	  } catch(Facebook\Exceptions\FacebookResponseException $e) {
-	    // When Graph returns an error
-	    echo 'Graph returned an error: ' . $e->getMessage();
-	    exit;
-	  } catch(Facebook\Exceptions\FacebookSDKException $e) {
-	    // When validation fails or other local issues
-	    echo 'Facebook SDK returned an error: ' . $e->getMessage();
-	    exit;
-	  }
-	  $graphNode = $response->getGraphNode();
-	  return view('chuyentrang');
+		//bỏ đăng ký
+		if( isset($pageid) && $type == 'false' ){
+			$pagekey=FacebookPages::where('pagesid',$pageid)->first()->access_token;
+		  	$fb->setDefaultAccessToken($pagekey);
+		  	$requeststring = $fb->request(
+		    	'DELETE',
+		    	'/'.$pageid.'/subscribed_apps'
+		  	);
+		  	try {
+		    	$response = $fb->getClient()->sendRequest($requeststring);
+		  	} catch(Facebook\Exceptions\FacebookResponseException $e) {
+		    	// When Graph returns an error
+		    	echo 'Graph returned an error: ' . $e->getMessage();
+		    	exit;
+		  	} catch(Facebook\Exceptions\FacebookSDKException $e) {
+		    	// When validation fails or other local issues
+		    	echo 'Facebook SDK returned an error: ' . $e->getMessage();
+		    	exit;
+		  	}		  	
+			FacebookPages::where('pagesid',$pageid)->update(['isactive'=>false]);
+		}
 	}
 }

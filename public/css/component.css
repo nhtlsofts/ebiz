@@ -1,0 +1,107 @@
+@font-face {
+	font-weight: normal;
+	font-style: normal;
+	font-family: 'FontAwesome';
+  	src: url('../fonts/FontAwesome/fontawesome-webfont.eot?v=4.7.0');
+  	src: url('../fonts/FontAwesome/fontawesome-webfont.eot?#iefix&v=4.7.0') format('embedded-opentype'), url('../fonts/FontAwesome/fontawesome-webfont.woff2?v=4.7.0') format('woff2'), url('../fonts/FontAwesome/fontawesome-webfont.woff?v=4.7.0') format('woff'), url('../fonts/FontAwesome/fontawesome-webfont.ttf?v=4.7.0') format('truetype'), url('../fonts/FontAwesome/fontawesome-webfont.svg?v=4.7.0#fontawesomeregular') format('svg');
+}
+
+.cbp-vimenu {
+	position: fixed;
+	overflow: hidden;
+	top: 0;
+	left: 0;
+	height: 100%;
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	background: #f7f7f7;
+	width: 50px;
+}
+
+.cbp-vimenu li a {
+	display: block;
+	text-indent: -500em;
+	height: 50px;
+	width: 50px;
+	line-height: 50px;
+	text-align: center;
+	color: #999;
+	position: relative;
+	border-bottom: 1px solid rgba(0,0,0,0.05);
+	-webkit-transition: background 0.1s ease-in-out;
+	-moz-transition: background 0.1s ease-in-out;
+	transition: background 0.1s ease-in-out;
+}
+
+.cbp-vimenu li a:hover,
+.cbp-vimenu li:first-child a{
+	background: #47a3da;
+	color: #fff;
+}
+
+/* class for current item */
+.cbp-vimenu li.cbp-vicurrent a {
+	background: #fff;
+	color: #47a3da;
+}
+
+.cbp-vimenu li a:before {
+	font-family: 'FontAwesome';
+	speak: none;
+	font-style: normal;
+	font-weight: normal;
+	text-indent: 0em;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	font-size: 1.9em;
+	-webkit-font-smoothing: antialiased;
+}
+
+.cbp-vimenu li a.icon-logo:before {
+	content: "C";
+	font-weight: 700;
+	font-size: 300%;
+	font-family: 'Lato', Calibri, Arial, sans-serif;
+}
+
+.icon-cart:before {
+	content: "\f23d";
+}
+
+.icon-facebook:before {
+	content: "\f230";
+}
+
+.icon-download:before {
+	content: "\f2b5";
+}
+
+.icon-option:before {
+	content: "\f085";
+}
+.icon-customer:before {
+	content: "\f2ba";
+}
+
+.icon-images:before {
+	content: "\f2b5";
+}
+
+.icon-product:before {
+	content: "\f16b";
+}
+
+/* Example for media query (depends on total height of menu) */
+@media screen and (max-height: 34.9375em) { 
+
+	.cbp-vimenu {
+		font-size: 70%;
+	}
+
+}
+
+

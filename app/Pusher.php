@@ -32,7 +32,6 @@ class Pusher implements MessageComponentInterface
             , $from->resourceId, $msg, $numRecv, $numRecv == 1 ? '' : 's');
 
         foreach ($this->clients as $client) {
-            var_dump("aabbbccc ".$client->WebSocket->request->getQuery()->toArray());
             if ($from !== $client  ) {
                 //The sender is not the receiver, send to each client connected
                 $client->send($msg);
@@ -41,7 +40,7 @@ class Pusher implements MessageComponentInterface
     }
 
     public function onSend($msg) {
-        $numRecv = count($this->clients);
+        /*$numRecv = count($this->clients);
         echo sprintf('Server sending message "' . $msg . '" to all other connection') . "\n";
 
         foreach ($this->clients as $client) {
@@ -50,6 +49,11 @@ class Pusher implements MessageComponentInterface
                 // The sender is not the receiver, send to each client connected
                 $client->send($msg);
             //}
+        }*/
+        $json = json_decode($msg, true);
+        if (isset($json['facebookuser']) && isset($this->cid[$json['facebookuser']])) {
+            echo 'Send to '. $this->cid[$json['facebookuser']]->resourceId . "\n";
+            $this->cid[$json['facebookuser']]->send($msg);
         }
     }
 

@@ -44,7 +44,21 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
-        return parent::render($request, $exception);
+        
+        if ($e instanceof ModelNotFoundException) {
+            $e = new NotFoundHttpException($e->getMessage(), $e);
+        }
+
+        if ($e instanceof \Illuminate\Session\TokenMismatchException) {    
+
+          // flash your message
+
+            \Session::flash('flash_message_important', 'Sorry, your session seems to have expired. Please try again.'); 
+
+            return redirect('/facebook/login');
+        }
+
+        return parent::render($request, $e);
     }
 
     /**
@@ -60,6 +74,6 @@ class Handler extends ExceptionHandler
             return response()->json(['error' => 'Unauthenticated.'], 401);
         }
 
-        return redirect()->guest(route('login'));
+        return redirect()->guest(route('/facebook/login'));
     }
 }

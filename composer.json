@@ -13,7 +13,8 @@
         "ratchet/pawl": "^0.2.3",
         "sammyk/laravel-facebook-sdk": "^3.0",
         "symfony/symfony": "^3.3",
-        "tonyhhyip/sse": "^2.1"
+        "tonyhhyip/sse": "^2.1",
+        "react/zmq": "^0.3.0"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",

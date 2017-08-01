@@ -5,19 +5,41 @@ namespace App\Http\Controllers;
 use Illuminate\Routing\Controller as BaseController;
 use SammyK\LaravelFacebookSdk\LaravelFacebookSdk;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
 use App\ReceiveData;
 use App\FacebookPages;
-use \ZMQContext;
-use \ZMQ;
+use App\Services\Pusher;
 use React\EventLoop\Factory;
 use React\Socket\Server;
 use React\ZMQ\Context;
-use App\Services\Pusher;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Session;
+use \ZMQContext;
+use \ZMQ;
 
 class TakeController extends BaseController
 {
+	function ishide($string,$page)
+	{
+		$dk1 = 0;
+		$new_str = str_replace(str_split('()- .,'), '', $string);
+		if (preg_match("/[0-9]{10,11}/", $new_str, $sdt)) { 
+			$dk1 = 1;
+		}
+
+		$regex = '/[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,3})/'; 
+		if (preg_match($regex, $string, $email_is)) {
+		 	$dk1 = 1;
+		}
+		$dk2 = (int)db::table('option')->select('autohideemailandphone')->where('pageid',$page)->first()->autohideemailandphone;
+		if ( $dk2 || $dk2 )
+		{
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
     function Take(LaravelFacebookSdk $fb,Request $request) {
 
 		$access_token = env("FACEBOOK_APP_ID")."|".env("FACEBOOK_APP_SECRET");
@@ -39,9 +61,14 @@ class TakeController extends BaseController
 		$receive1 = $request->input('entry.0.messaging');
 		$receive2 = $request->input('entry.0.changes');
 		$receive3 = $request->input('entry.0.messaging.0.message.is_echo');
+		$receive4 = $request->input('entry.0.id');
+
+		if(isset($receive4)){
+			$table = 'receive_Data_'.FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->user_id;
+		}
 
 		if(isset($receive1)){
-			if ( ReceiveData::where('oid','m_'.str_replace('.$','_',$request->input('entry.0.messaging.0.message.mid')))->get()->isEmpty()){
+			if ( db::table($table)->where('oid','m_'.str_replace('.$','_',$request->input('entry.0.messaging.0.message.mid')))->get()->isEmpty()){
 				if( $request->input('entry.0.id') != $request->input('entry.0.messaging.0.sender.id')){
 					$pagekey=FacebookPages::where('pagesid',$request->input('entry.0.messaging.0.recipient.id'))->first()->access_token;
 					$fb->setDefaultAccessToken($pagekey);
@@ -57,24 +84,23 @@ class TakeController extends BaseController
 					$json = json_decode($response1->getBody(), true)['to']['data'][0]['id'];
 				}
 
-				if ( ! ReceiveData::where([['sender_id',$json],['receive_id',$request->input('entry.0.id')],['isRoot',1]])->orwhere([['sender_id',$request->input('entry.0.id')],['receive_id',$json],['isRoot',1]])->get()->isEmpty()){
+				if ( ! db::table($table)->where([['sender_id',$json],['receive_id',$request->input('entry.0.id')],['isRoot',1]])->orwhere([['sender_id',$request->input('entry.0.id')],['receive_id',$json],['isRoot',1]])->get()->isEmpty()){
 
-					$data = new ReceiveData;
-					$sender_db = ReceiveData::where([['sender_id',$json],['receive_id',$request->input('entry.0.id')],['type','message']])->orwhere([['sender_id',$request->input('entry.0.id')],['receive_id',$json],['isRoot',1]],['type','message'])->get()->first();	
-					var_dump($sender_db);
+					$data = new ReceiveData(FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->user_id);
+					$sender_db = db::table($table)->where([['sender_id',$json],['receive_id',$request->input('entry.0.id')],['type','message']])->orwhere([['sender_id',$request->input('entry.0.id')],['receive_id',$json],['isRoot',1]],['type','message'])->first();	
 					$data->type = 'message';
-					$data->user_id = '';
+					$data->facebookuser = FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->user_id;
 					$data->comments = $request->input('entry.0.messaging.0.message.text');
 					$data->attackment = $request->input('entry.0.messaging.0.message.attachments.0.payload.url');
-					$data->post_id = $sender_db['oid'];		
-					$data->page =  $request->input('entry.0.messaging.0.recipient.id');
+					$data->post_id = $sender_db->oid;		
+					$data->page =  $request->input('entry.0.id');
 					$data->data = $request->input('entry.0.messaging');
 				    $data->Isroot = 2 ;
 					$data->oid = 'm_'.str_replace('.$','_',$request->input('entry.0.messaging.0.message.mid'));						
-					$data->receive_id = $sender_db['receive_id'];
-					$data->sender_name = $sender_db['sender_name'];
-					$data->sender_id = $sender_db['sender_id'];
-			    	$data->parent_id = $sender_db['oid'];
+					$data->receive_id = $sender_db->receive_id;
+					$data->sender_name = $sender_db->sender_name;
+					$data->sender_id = $sender_db->sender_id;
+			    	$data->parent_id = $sender_db->oid;
 			    	$data->like = false;
 					$data->hidden = false;
 			    	$data->is_read = false;
@@ -82,7 +108,7 @@ class TakeController extends BaseController
 						$data->receive_name = 'Me';					
 					}
 					else{					
-						$data->receive_name = $sender_db['sender_name'];;
+						$data->receive_name = $sender_db->sender_name;
 					}
 					$data->created_at = date("Y-m-d H:i:s", $request->input('entry.0.messaging.0.timestamp')/1000);
 					$data->save();
@@ -96,15 +122,15 @@ class TakeController extends BaseController
 		}
 		else if (isset($receive2)){
 			if ( $request->input('entry.0.changes.0.field')  == 'conversations'){
-				$data = new ReceiveData;
-				if ( ReceiveData::where([['oid', str_replace('.$','_',$request->input('entry.0.changes.0.value.thread_id'))],['isRoot',1]])->get()->isEmpty() ) {										
+				$data = new ReceiveData(FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->user_id);
+				if ( db::table($table)->where([['oid', str_replace('.$','_',$request->input('entry.0.changes.0.value.thread_id'))],['isRoot',1]])->get()->isEmpty() ) {										
 	        		$data->Isroot = 1 ;
 					$data->parent_id = str_replace('.$','_',$request->input('entry.0.changes.0.value.thread_id'));
 					$data->oid = str_replace('.$','_',$request->input('entry.0.changes.0.value.thread_id'));				
 					$data->type = 'message';
 					$data->comments = '';
 					$data->attackment = null;
-					$data->user_id = '';
+					$data->facebookuser = FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->user_id;
 					$data->post_id = str_replace('.$','_',$request->input('entry.0.changes.0.value.thread_id'));
 					$data->page =  $request->input('entry.0.id');
 					$data->data = $request->input('entry.0.changes');
@@ -129,9 +155,9 @@ class TakeController extends BaseController
 			else if ( $request->input('entry.0.changes.0.value.item')  == 'comment' )
 			{
 				if ( $request->input('entry.0.changes.0.value.verb')  == 'add'){
-					$data = new ReceiveData;
+					$data = new ReceiveData(FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->user_id);
 
-					if ( ReceiveData::where([['oid', $request->input('entry.0.changes.0.value.parent_id')],['isRoot',1]])->get()->isEmpty() ) {
+					if ( db::table($table)->where([['oid', $request->input('entry.0.changes.0.value.parent_id')],['isRoot',1]])->get()->isEmpty() ) {
 						if ($request->input('entry.0.changes.0.value.parent_id')==$request->input('entry.0.changes.0.value.post_id'))
 						{						
 			        		$data->Isroot = 1 ;
@@ -170,7 +196,7 @@ class TakeController extends BaseController
 					}
 					$data->sender_id = $request->input('entry.0.changes.0.value.sender_id');
 					$data->sender_name = $request->input('entry.0.changes.0.value.sender_name');
-					$data->user_id = '';
+					$data->facebookuser = FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->user_id;
 					$data->post_id = $request->input('entry.0.changes.0.value.post_id');	
 					$data->page =  $request->input('entry.0.id');
 					$data->data = $request->input('entry.0.changes');
@@ -185,35 +211,56 @@ class TakeController extends BaseController
 					else{
 						$data->receive_name = 'Me';
 					}
-					$data->save();
+					$data->save();					
+					if ( TakeController::ishide($data->comments,$data->page) &&  $data->sender_id != $data->page){
+				        $fb->setDefaultAccessToken(FacebookPages::where('pagesid',$data->page)->first()->access_token);
+				        
+					  	$requeststring = $fb->request(
+					    'POST',
+					    '/'.$data->oid,
+					    array(
+						      'is_hidden' => true,
+						    )
+					    );
+					    try {
+						    $response = $fb->getClient()->sendRequest($requeststring);
+						} catch(Facebook\Exceptions\FacebookResponseException $e) {
+						    // When Graph returns an error
+						    echo 'Graph returned an error: ' . $e->getMessage();
+						    exit;
+						} catch(Facebook\Exceptions\FacebookSDKException $e) {
+						    // When validation fails or other local issues
+						    echo 'Facebook SDK returned an error: ' . $e->getMessage();
+						    exit;
+						}
+					}
 				}
 				else if ( $request->input('entry.0.changes.0.value.verb')  == 'remove'){
-					if( ReceiveData::where('oid',$request->input('entry.0.changes.0.value.comment_id'))->select('isroot')->get()[0]['isroot'] == 1 ) {						
-						$oidarray = ReceiveData::where('parent_id', $request->input('entry.0.changes.0.value.comment_id'))->select('oid')->get();
-						ReceiveData::where('parent_id', $request->input('entry.0.changes.0.value.comment_id'))
+					if( db::table($table)->where('oid',$request->input('entry.0.changes.0.value.comment_id'))->select('isroot')->first()->isroot == 1 ) {						
+						$oidarray = db::table($table)->select('oid')->where('parent_id', $request->input('entry.0.changes.0.value.comment_id'))->get();
+						db::table($table)->where('parent_id', $request->input('entry.0.changes.0.value.comment_id'))
 														->delete();
 					}
 					else {						
 						$oidarray[] = array('oid'=>$request->input('entry.0.changes.0.value.comment_id'));
-						ReceiveData::where('oid', $request->input('entry.0.changes.0.value.comment_id'))
+						db::table($table)->where('oid', $request->input('entry.0.changes.0.value.comment_id'))
 														->delete();
 					}
-					var_dump($oidarray);
-					$data = array("oid"=>$oidarray, "delete"=>1);
+					$data = array("oid"=>$oidarray, 'facebookuser'=>FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->user_id ,"delete"=>1);
 				}
 				else if ( $request->input('entry.0.changes.0.value.verb')  == 'hide'){
-					ReceiveData::where('oid', $request->input('entry.0.changes.0.value.comment_id'))
+					db::table($table)->where('oid', $request->input('entry.0.changes.0.value.comment_id'))
 														->update(['hidden'=>true]);
-					$data = array("oid"=>$request->input('entry.0.changes.0.value.comment_id'), "updatehide"=>true);
+					$data = array("oid"=>$request->input('entry.0.changes.0.value.comment_id'),'facebookuser'=>FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->user_id, "updatehide"=>true);
 				}
 				else if ( $request->input('entry.0.changes.0.value.verb')  == 'unhide'){
-					ReceiveData::where('oid', $request->input('entry.0.changes.0.value.comment_id'))
+					db::table($table)->where('oid', $request->input('entry.0.changes.0.value.comment_id'))
 														->update(['hidden'=>false]);
-					$data = array("oid"=>$request->input('entry.0.changes.0.value.comment_id'), "updatehide"=>false);
+					$data = array("oid"=>$request->input('entry.0.changes.0.value.comment_id'),'facebookuser'=>FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->user_id, "updatehide"=>false);
 				}
 			}
 			else if ($request->input('entry.0.changes.0.value.item')  == 'post'){
-				$data = new ReceiveData;
+				$data = new ReceiveData(FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->user_id);
 				$data->Isroot = 0 ;
 				$data->parent_id = '';
 				$data->type = 'post';
@@ -221,7 +268,7 @@ class TakeController extends BaseController
 				$data->comments = $request->input('entry.0.changes.0.value.message');
 				$data->sender_id = $request->input('entry.0.changes.0.value.sender_id');
 				$data->sender_name = $request->input('entry.0.changes.0.value.sender_name');
-				$data->user_id = '';
+				$data->facebookuser = FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->user_id;
 				$data->post_id = $request->input('entry.0.changes.0.value.post_id');	
 				$data->page =  $request->input('entry.0.id');
 				$data->data = $request->input('entry.0.changes');
@@ -232,6 +279,28 @@ class TakeController extends BaseController
 				$data->hidden = false;
 		    	$data->is_read = false;
 				$data->save();
+				if ( TakeController::ishide($data->comments,$data->page)  &&  $data->sender_id != $data->page){
+			        $fb->setDefaultAccessToken(FacebookPages::where('pagesid',$data->page)->first()->access_token);
+			        
+				  	$requeststring = $fb->request(
+				    'POST',
+				    '/'.$data->oid,
+				    array(
+					      'is_hidden' => true,
+					    )
+				    );
+				    try {
+					    $response = $fb->getClient()->sendRequest($requeststring);
+					} catch(Facebook\Exceptions\FacebookResponseException $e) {
+					    // When Graph returns an error
+					    echo 'Graph returned an error: ' . $e->getMessage();
+					    exit;
+					} catch(Facebook\Exceptions\FacebookSDKException $e) {
+					    // When validation fails or other local issues
+					    echo 'Facebook SDK returned an error: ' . $e->getMessage();
+					    exit;
+					}
+				}
 			}
 			else if ($request->input('entry.0.changes.0.value.item')  == 'like'){
 				if ( $request->input('entry.0.id') == $request->input('entry.0.changes.0.value.sender_id')){
@@ -241,9 +310,9 @@ class TakeController extends BaseController
 					else{
 						$update = false;
 					}
-					ReceiveData::where('oid', $request->input('entry.0.changes.0.value.comment_id'))
+					db::table($table)->where('oid', $request->input('entry.0.changes.0.value.comment_id'))
 														->update(['like'=>$update]);
-					$data = array("oid"=>$request->input('entry.0.changes.0.value.comment_id'), "updatelike"=>$update);
+					$data = array("oid"=>$request->input('entry.0.changes.0.value.comment_id'),'facebookuser'=>FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->user_id, "updatelike"=>$update);
 				}
 			}
 		}
@@ -260,10 +329,12 @@ class TakeController extends BaseController
 
 	function onChat(LaravelFacebookSdk $fb)
     {
-
-        $fb->setDefaultAccessToken(Session::get('page_key'));
         $oid=$_GET["oid"];
         $chatdata=$_GET["chatdata"];
+    	$table = 'receive_Data_'.session::get('user_id');
+    	$pagesid = db::table($table)->where('oid',$oid)->first()->page;
+    	$token = FacebookPages::where('pagesid',$pagesid)->first()->access_token;
+        $fb->setDefaultAccessToken($token);
 
         if ( strpos($oid,'mid_') ){
         	$requeststring = $fb->request(
@@ -274,6 +345,11 @@ class TakeController extends BaseController
 		    ));
 		    try {
 			    $response = $fb->getClient()->sendRequest($requeststring);
+				$array[] = array(
+					'id'=> str_replace('m_mid.$','m_mid_',json_decode($response->getBody(), true)['id']),
+					'type'=>'message'
+				);
+			    echo json_encode($array);
 			} catch(Facebook\Exceptions\FacebookResponseException $e) {
 			    // When Graph returns an error
 			    echo 'Graph returned an error: ' . $e->getMessage();
@@ -293,6 +369,11 @@ class TakeController extends BaseController
 		    ));
 		    try {
 			    $response = $fb->getClient()->sendRequest($requeststring);
+			   	$array[] = array(
+					'id'=> json_decode($response->getBody(), true)['id'],
+					'type'=>'comments'
+				);
+			    echo json_encode($array);
 			} catch(Facebook\Exceptions\FacebookResponseException $e) {
 			    // When Graph returns an error
 			    echo 'Graph returned an error: ' . $e->getMessage();
@@ -307,8 +388,11 @@ class TakeController extends BaseController
     function onLike(LaravelFacebookSdk $fb)
     {
 
-        $fb->setDefaultAccessToken(Session::get('page_key'));
         $oid=$_GET["oid"];
+    	$table = 'receive_Data_'.session::get('user_id');
+    	$pagesid = db::table($table)->where('oid',$oid)->first()->page;
+    	$token = FacebookPages::where('pagesid',$pagesid)->first()->access_token;
+        $fb->setDefaultAccessToken($token);
         $type=$_GET["type"];
 
         if ($type==1){
@@ -338,8 +422,11 @@ class TakeController extends BaseController
     function onDelete(LaravelFacebookSdk $fb)
     {
 
-        $fb->setDefaultAccessToken(Session::get('page_key'));
         $oid=$_GET["oid"];
+    	$table = 'receive_Data_'.session::get('user_id');
+    	$pagesid = db::table($table)->where('oid',$oid)->first()->page;
+    	$token = FacebookPages::where('pagesid',$pagesid)->first()->access_token;
+        $fb->setDefaultAccessToken($token);
 
 	  	$requeststring = $fb->request(
 	    'DELETE',
@@ -360,8 +447,11 @@ class TakeController extends BaseController
     function onHide(LaravelFacebookSdk $fb)
     {
 
-        $fb->setDefaultAccessToken(Session::get('page_key'));
         $oid=$_GET["oid"];
+    	$table = 'receive_Data_'.session::get('user_id');
+    	$pagesid = db::table($table)->where('oid',$oid)->first()->page;
+    	$token = FacebookPages::where('pagesid',$pagesid)->first()->access_token;
+        $fb->setDefaultAccessToken($token);
         $type=$_GET["type"];
 
         if ($type==1){
@@ -397,8 +487,11 @@ class TakeController extends BaseController
     function onInbox(LaravelFacebookSdk $fb)
     {
 
-        $fb->setDefaultAccessToken(Session::get('page_key'));
         $oid=$_GET["oid"];
+    	$table = 'receive_Data_'.session::get('user_id');
+    	$pagesid = db::table($table)->where('oid',$oid)->first()->page;
+    	$token = FacebookPages::where('pagesid',$pagesid)->first()->access_token;
+        $fb->setDefaultAccessToken($token);
 
 	  	$requeststring = $fb->request(
 	    'DELETE',
@@ -418,8 +511,11 @@ class TakeController extends BaseController
     }
     function onPicture(LaravelFacebookSdk $fb)
     {
-        $fb->setDefaultAccessToken(Session::get('page_key'));
         $oid=$_GET["oid"];
+    	$table = 'receive_Data_'.session::get('user_id');
+    	$pagesid = db::table($table)->where('oid',$oid)->first()->page;
+    	$token = FacebookPages::where('pagesid',$pagesid)->first()->access_token;
+        $fb->setDefaultAccessToken($token);
         $path=$_GET["path"];
 	  	$requeststring = $fb->request(
 	    'POST',
