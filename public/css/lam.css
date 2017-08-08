@@ -248,7 +248,7 @@ p {
   border-width: 1px 1px 1px 0;
   border-style: solid;
   border-color: #e6e6e6;
-  height: calc(100% - 130px);
+  height: calc(100% - 120px);
   -webkit-box-pack: end;
       -ms-flex-pack: end;
           justify-content: flex-end;
@@ -313,7 +313,7 @@ p {
 }
 .container .right .write {
   position: absolute;
-  bottom: 29px;
+  margin-top: 10px;
   left: 30px;
   height: 42px;
   padding-left: 8px;
@@ -1144,6 +1144,18 @@ select option {
 }
 .hide{
   display: none;
+}
+.button__badge {
+  background-color: #fa3e3e;
+  border-radius: 2px;
+  color: white;
+ 
+  padding: 1px 3px;
+  font-size: 10px;
+  
+  position: absolute; /* Position the badge within the relatively positioned button */
+  top: 0;
+  right: 0;
 }
 @media only screen and (max-width: 540px) {
   .col-half {

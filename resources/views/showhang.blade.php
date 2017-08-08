@@ -50,7 +50,7 @@
 										-->
 						<li><a href="customerlist" class="icon-customer">Location</a></li>
 						<li><a href="option" class="icon-option">Images</a></li>
-						<li><a href="#" class="icon-download">Download</a></li>
+						<li><a href="#" class="icon-unseen">Download</a></li>
 					</ul>
 				</div>
 		        <div class="left">
@@ -67,11 +67,16 @@
 						<div class="content-wrap">
 							<section id="section-underline-1">							
 							<div class="people">
-								@foreach ($manages as $manage)
+								@foreach ($comments as $manage)
 									@if ( $manage->type == 'comment' )
-									<div class="person" fb-name={{$manage->sender_name}} fb-id={{$manage->sender_id}} data-chat={{$manage->oid}} id={{$manage->oid}} pagesid={{$manage->page}}>						
-										<img src="https://s13.postimg.org/ih41k9tqr/img1.jpg" alt="" />
-										<span class="name">{{$manage->sender_name}}</span>
+									<div class="person" fb-name={{$manage->sender_name}} fb-id={{$manage->sender_id}} data-chat={{$manage->oid}} id={{$manage->oid}} pagesid={{$manage->page}}>	
+										@if ( $manage->is_read == 0 )
+										<span class="button__badge">new</span>
+										@else
+										<span class="button__badge_not" style="display: none;"></span>
+										@endif					
+										<img src="{{$manage->ava}}" alt="" />
+										<span class="name" ava='{{$manage->ava}}'>{{$manage->sender_name}}</span>
 					                    <span class="time preview">{{$manage->created_at}}</span>
 					                    @if ( $manage->comments != null)
 					                    	<span class="preview">{{$manage->comments}}</span>
@@ -85,11 +90,16 @@
 							</section>
 							<section id="section-underline-2">
 							<div class="people">
-								@foreach ($manages as $manage)
+								@foreach ($messages as $manage)
 									@if ( $manage->type == 'message' )
-								    <div class="person" fb-name={{$manage->sender_name}} fb-id={{$manage->sender_id}} data-chat={{$manage->oid}} id={{$manage->oid}} pagesid={{$manage->page}}>								
-										<img src="https://s13.postimg.org/ih41k9tqr/img1.jpg" alt="" />
-										<span class="name">{{$manage->sender_name}}</span>
+								    <div class="person" fb-name={{$manage->sender_name}} fb-id={{$manage->sender_id}} data-chat={{$manage->oid}} id={{$manage->oid}} pagesid={{$manage->page}}>
+								    	@if ( $manage->is_read == 0 )
+										<span class="button__badge">new</span>
+										@else
+										<span class="button__badge_not" style="display: none;"></span>
+										@endif						
+										<img src="{{$manage->ava}}" alt="" />
+										<span class="name" ava='{{$manage->ava}}'>{{$manage->sender_name}}</span>
 					                    <span class="time preview">{{$manage->created_at}}</span>
 					                    @if ( $manage->comments != null)
 					                    	<span class="preview">{{$manage->comments}}</span>

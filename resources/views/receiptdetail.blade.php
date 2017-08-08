@@ -46,7 +46,7 @@
 										-->
 						<li><a href="customerlist" class="icon-customer">Location</a></li>
 						<li><a href="option" class="icon-option">Images</a></li>
-						<li><a href="#" class="icon-download">Download</a></li>
+						<li><a href="#" class="icon-unseen">Download</a></li>
 					</ul>
 				</div>
 				<div class='receiptdetail'>

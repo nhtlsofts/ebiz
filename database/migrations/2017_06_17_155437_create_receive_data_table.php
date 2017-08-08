@@ -31,6 +31,7 @@ class CreateReceiveDataTable extends Migration
             $table->boolean('hidden');
             $table->boolean('is_read');
             $table->json('data');
+            $table->string('ava',200);
             $table->timestamps();
         });
     }

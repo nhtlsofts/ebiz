@@ -88,6 +88,14 @@
         } else {
             var findChat = $(this).attr('data-chat');
             var personName = $(this).find('.name').text();
+            $(this).children('.button__badge').remove();
+            $(this).append('<span class="button__badge_not" style="display: none;">new</span>');
+            $.ajax({
+                url: "/laravel/public/read",
+                type: 'GET',
+                cache: false,
+                data: 'oid=' + $(this).attr('data-chat')
+            });
             $('.right .top .name').html(personName);
             $('.chat').removeClass('active-chat');
             $('.left .person').removeClass('active');
@@ -219,11 +227,13 @@
         new CBPFWTabs(el);
     });
 
-    $("#chat_input").live("keyup", function(e) {
-        if (e.which == 13) {
+    $("#chat_input").live("keyup click", function(e) {
+        var target = $(this);
+        $('#'+target.attr('parrent')).children('.button__badge').remove();
+        $('#'+target.attr('parrent')).append('<span class="button__badge_not" style="display: none;">new</span>');
+        if (e.which == 13) {            
             $('#chat_' + $(this).attr('parrent')).append("<div class='bubble me wait' >" + $(this).val() + "</div>");
-            var target = $(this);
-            var value = target.val();
+            var value = target.val();            
             target.val('');
             $.ajax({
                 url: "/laravel/public/chat",
@@ -248,17 +258,18 @@
                 error: function() {
                     $('.wait').each(function(entry) {
                         if ( $(this, 'mycomment').html() == value){
-                            $(this, 'mycomment').html('không gửi được');
+                            $(this, 'mycomment').html('không gửi được: '+value);
                         }                        
                     });
                 }
             });
+            $("#chat_" + target.attr('parrent')).scrollTop(9999999);
         }
     });
 
     try {
         //var socket = new WebSocket('wss://fc500d6a.ngrok.io?aid='+user_id);
-        var socket = new WebSocket('wss://185de901.ngrok.io?aid='+user_id);
+        var socket = new WebSocket('wss://5f28ba51.ngrok.io?aid='+user_id);
         socket.onopen = function(e) {
             console.log("Connection established!");
             console.log(e);
@@ -293,13 +304,15 @@
             else {
                 if (json.Isroot == 2) {
                     var name = $("#" + json.parent_id + ' .name').html();
+                    var ava = $("#" + json.parent_id + ' .name').attr('ava');
                     $("#" + json.parent_id).empty();
                     $("#" + json.parent_id).append(
-                        "<img src='https://s13.postimg.org/ih41k9tqr/img1.jpg' alt='' />" +
-                        "<span class='name'>" + name + "</span>" +
+                        "<img src='"  + ava +  "' alt='' />" +
+                        "<span class='name' ava= '" + ava +"'>" + name + "</span>" +
                         "<span class='time preview'>" + json.created_at + "</span>" +
                         "<span class='preview'>" + json.comments + "</span>");
-                    if(json.receive_name != 'Me'){                             
+                    if(json.receive_name != 'Me'){
+                        $("#" + json.parent_id).append('<span class="button__badge">new</span>');                            
                         var div = "<div class='bubble you' id='k_"+ json.oid +"'>"+
                                             "<div class='bar_name'>"+json.sender_name+"</div>"+
                                             "<div>";
@@ -323,7 +336,7 @@
                         $("#chat_" + json.parent_id).append(div);
                     }
                     else{
-                        if ( $('#k_'+json.oid).length == 0) {
+                        if ( $('#k_'+json.oid).length == 0) {                          
                             var div = "<div class='bubble me' id='#_"+ json.oid +"'>";
                             if ( typeof json.comments != "undefined" && json.comments !=null ){
                                 div=div+"<div class='mycomment'>"+json.comments+"</div>";
@@ -342,22 +355,25 @@
                             $("#chat_" + json.parent_id).append(div);
                         }
                     }
+                     $("#chat_" + json.parent_id).scrollTop(9999999);
                     console.log(e);
                 }
                 if (json.Isroot == 1) {
                     if (json.type == 'comment') {
                         $("#section-underline-1 .people").prepend(
                             "<div class='person' pagesid='" + json.page +"' data-chat=" + json.oid + " id=" + json.oid + ">" +
-                            "<img src='https://s13.postimg.org/ih41k9tqr/img1.jpg' alt='' />" +
-                            "<span class='name'>" + json.sender_name + "</span>" +
+                            "<span class='button__badge'>new</span>"+
+                            "<img src='" + json.ava + "' alt='' />" +
+                            "<span class='name' ava='"+ json.ava +"'>" + json.sender_name + "</span>" +
                             "<span class='time preview'>" + json.created_at + "</span>" +
                             "<span class='preview'>" + json.comments + "</span>");
                         console.log(e);
                     } else {
                         $("#section-underline-2 .people").prepend(
                             "<div class='person' data-chat=" + json.oid + " id=" + json.oid + ">" +
-                            "<img src='https://s13.postimg.org/ih41k9tqr/img1.jpg' alt='' />" +
-                            "<span class='name'>" + json.sender_name + "</span>" +
+                            "<span class='button__badge'>new</span>"+
+                            "<img src='" + json.ava + "' alt='' />" +
+                            "<span class='name' ava='"+ json.ava +"'>" + json.sender_name + "</span>" +
                             "<span class='time preview'>" + json.created_at + "</span>" +
                             "<span class='preview'>" + json.comments + "</span>");
                         console.log(e);
@@ -751,10 +767,8 @@
     });
     $('.right_bar').perfectScrollbar();
 
-    var dadpage = 2 ;
-    var dadpage2 = 2 ;
-
-    var template,
+    var timeout,
+        template,
         container,content,height,
         template2,
         container2,content2,height2,
@@ -765,50 +779,63 @@
     content2 =  $('#section-underline-2').children('.people');
 
     container.scroll(function() {
-        var active;
-        var scrollTop = container.scrollTop();
-        var height = content.height();
-        var containerHeight = content.parent().height();
-        
-        if (active) return;
-        
-        if (height-containerHeight-scrollTop<100) {
-            active=true;
-            addLines(dadpage);
-            active=false;
-        }
+        clearTimeout(timeout);  
+        timeout = setTimeout(function() {
+            var active;
+            var scrollTop = container.scrollTop();
+            var height = content.height();
+            var containerHeight = content.parent().height();
+            
+            if (active) return;
+            
+            if (height-containerHeight-scrollTop<100) {
+                active=true;
+                addLines($('#section-underline-1').children('.people').children('.person').last().children('.time.preview').html());
+                active=false;
+            }
+        }, 100); 
     });
+
 
     container2.scroll(function() {
-        var active2;
-        var scrollTop2 = container2.scrollTop();
-        var height2 = content2.height();
-        var containerHeight2 = content2.parent().height();
-        
-        if (active2) return;
-        
-        if (height2-containerHeight2-scrollTop2<100) {
-            active2=true;
-            addLines2(dadpage2);
-            active2=false;
-        }
+        clearTimeout(timeout);  
+        timeout = setTimeout(function() {
+            var active2;
+            var scrollTop2 = container2.scrollTop();
+            var height2 = content2.height();
+            var containerHeight2 = content2.parent().height();
+            
+            if (active2) return;
+            
+            if (height2-containerHeight2-scrollTop2<100) {
+                active2=true;
+                addLines2($('#section-underline-2').children('.people').children('.person').last().children('.time.preview').html());
+                active2=false;
+            }
+        }, 100); 
     });
 
-    function addLines($dadpage) {
+    function addLines(time) {
         $.ajax({
             url: "/laravel/public/getmoredata",
             type: 'GET',
             cache: false,
-            data: 'page=' + dadpage.toString(),
+            data: 'time=' + time,
             success: function(getData) {
-                for(var i=0;i<getData.data.length;i++){
-                    var person = '<div class="person" fb-name= ' + getData.data[i].sender_name + ' fb-id= ' +
-                                getData.data[i].sender_id + ' data-chat= ' + getData.data[i].oid + ' id= '+ getData.data[i].oid + ' pagesid= ' + 
-                                getData.data[i].page + '><img src="https://s13.postimg.org/ih41k9tqr/img1.jpg" alt="" />'+
-                                ' <span class="name"> '+getData.data[i].sender_name + ' </span><span class="time preview"> ' + 
-                                getData.data[i].created_at + ' </span> ';
-                    if ( getData.data[i].comments != null){
-                        person = person + '<span class="preview">' + getData.data[i].comments + '<span></div>';
+                for(var i=0;i<getData.length;i++){
+                    var person = '<div class="person" fb-name= ' + getData[i].sender_name + ' fb-id= ' +
+                                getData[i].sender_id + ' data-chat= ' + getData[i].oid + ' id= '+ getData[i].oid + ' pagesid= ' + 
+                                getData[i].page + '><img src="' + getData[i].ava  +'" alt="" />'+
+                                ' <span class="name" ava= "' + getData[i].ava + '"> '+getData[i].sender_name + ' </span><span class="time preview"> ' + 
+                                getData[i].created_at + ' </span> ';
+                    if ( getData[i].is_read == 0){
+                        person = person + '<span class="button__badge">new</span>';
+                    }
+                    else {
+                        person = person + '<span class="button__badge_not" style="display: none;"></span>';
+                    }         
+                    if ( getData[i].comments != null){
+                        person = person + '<span class="preview">' + getData[i].comments + '</span></div>';
                     }
                     else{
                         person = person + '<span class="preview">Hình ảnh</span></div>';  
@@ -816,7 +843,6 @@
                     content.append(person);
 
                 }
-                dadpage++;
             },
             error: function() {
                     alert('Mạng cùi bắp, tắt modem mở lại giùm cái.');
@@ -825,21 +851,27 @@
         //content.append("<a>abc</a>");
     }
 
-    function addLines2($dadpage) {
+    function addLines2(time) {
         $.ajax({
             url: "/laravel/public/getmoredata2",
             type: 'GET',
             cache: false,
-            data: 'page=' + dadpage2.toString(),
+            data: 'time=' + time,
             success: function(getData) {
-                for(var i=0;i<getData.data.length;i++){
-                    var person = '<div class="person" fb-name= ' + getData.data[i].sender_name + ' fb-id= ' +
-                                getData.data[i].sender_id + ' data-chat= ' + getData.data[i].oid + ' id= '+ getData.data[i].oid + ' pagesid= ' + 
-                                getData.data[i].page + '><img src="https://s13.postimg.org/ih41k9tqr/img1.jpg" alt="" />'+
-                                ' <span class="name"> '+getData.data[i].sender_name + ' </span><span class="time preview"> ' + 
-                                getData.data[i].created_at + ' </span> ';
-                    if ( getData.data[i].comments != null){
-                        person = person + '<span class="preview">' + getData.data[i].comments + '<span></div>';
+                for(var i=0;i<getData.length;i++){
+                    var person = '<div class="person" fb-name= ' + getData[i].sender_name + ' fb-id= ' +
+                                getData[i].sender_id + ' data-chat= ' + getData[i].oid + ' id= '+ getData[i].oid + ' pagesid= ' + 
+                                getData[i].page + '><img src="'+ getData[i].ava  +'" alt="" />'+
+                                ' <span class="name" ava= "' + getData[i].ava + '"> '+getData[i].sender_name + ' </span><span class="time preview"> ' + 
+                                getData[i].created_at + ' </span> ';
+                    if ( getData[i].is_read == 0){
+                        person = person + '<span class="button__badge">new</span>';
+                    }
+                    else {
+                        person = person + '<span class="button__badge_not" style="display: none;"></span>';
+                    }       
+                    if ( getData[i].comments != null){
+                        person = person + '<span class="preview">' + getData[i].comments + '</span></div>';
                     }
                     else{
                         person = person + '<span class="preview">Hình ảnh</span></div>';  
@@ -847,12 +879,24 @@
                     content2.append(person);
 
                 }
-                dadpage2++;
             },
             error: function() {
                     alert('Mạng cùi bắp, tắt modem mở lại giùm cái.');
                 }
         });
     }
+    $('.icon-unseen').live('click',function(){
+        $('.button__badge_not').parent().fadeOut();
+        $('.icon-unseen').attr('class','icon-seen');
+    });
+    $('.icon-seen').live('click',function(){
+        $('.button__badge_not').parent().fadeIn();
+        $('.icon-seen').attr('class','icon-unseen');
+    });
 
+
+    /*
+    $('.person span:not(.button__badge):not(.time.preview):not(.preview):not(.name)').each(function(){
+        $(this).parent().fadeOut();
+    });*/
 })();

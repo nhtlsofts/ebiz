@@ -44,8 +44,9 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
+        return parent::render($request, $exception);
         
-        if ($e instanceof ModelNotFoundException) {
+        /*if ($e instanceof ModelNotFoundException) {
             $e = new NotFoundHttpException($e->getMessage(), $e);
         }
 
@@ -58,7 +59,7 @@ class Handler extends ExceptionHandler
             return redirect('/facebook/login');
         }
 
-        return parent::render($request, $e);
+        return parent::render($request, $e);*/
     }
 
     /**

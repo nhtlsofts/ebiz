@@ -99,7 +99,8 @@ class CallbackController extends BaseController
 		            $table->boolean('like');
 		            $table->boolean('hidden');
 		            $table->boolean('is_read');
-		            $table->json('data');
+		            $table->json('data');		            
+           			$table->string('ava',200);
 		            $table->timestamps();
 		        });
 			}

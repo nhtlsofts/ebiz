@@ -48,6 +48,8 @@ Route::get('/getdata','GetDataController@getdata');
 
 Route::get('/getmoredata','GetDataController@getmoredata');
 
+Route::get('/getmoredata2','GetDataController@getmoredata2');
+
 Route::any('/getdetail','GetDataController@getdetail');
 
 Route::any('/searchReceiptList','GetDataController@searchReceiptList');
@@ -69,6 +71,8 @@ Route::any('/UpdateCustomerList','GetDataController@UpdateCustomerList');
 Route::any('/DeleteCustomerList','GetDataController@DeleteCustomerList');
 
 Route::any('/InsertCustomerList','GetDataController@InsertCustomerList');
+
+Route::any('/read','GetDataController@read');
 
 Route::any('/getProvince','GetDataController@getProvince');
 

@@ -31,7 +31,7 @@ class TakeController extends BaseController
 		 	$dk1 = 1;
 		}
 		$dk2 = (int)db::table('option')->select('autohideemailandphone')->where('pageid',$page)->first()->autohideemailandphone;
-		if ( $dk2 || $dk2 )
+		if ( $dk1 && $dk2 )
 		{
 			return true;
 		}
@@ -137,7 +137,7 @@ class TakeController extends BaseController
 					$data->created_at = date("Y-m-d H:i:s", $request->input('entry.0.time'));
 					////// lấy sender
 					$pagekey=FacebookPages::where('pagesid',$request->input('entry.0.id'))->first()->access_token;
-					$fb->setDefaultAccessToken($pagekey);				
+					//$fb->setDefaultAccessToken($pagekey);				
 					$requeststring='/'.$request->input('entry.0.changes.0.value.thread_id').'?fields=senders';
 					$response2 = $fb->get($requeststring,$pagekey);
 					$json2 = json_decode($response2->getBody(), true);
@@ -149,6 +149,15 @@ class TakeController extends BaseController
 			    	$data->like = false;
 					$data->hidden = false;
 			    	$data->is_read = false;
+
+				    // lấy avata
+					$pagekey=FacebookPages::where('pagesid',$data->page)->first()->access_token;
+					$requeststring='/'.$data->sender_id.'/picture';
+					$response3 = $fb->get($requeststring,$pagekey);
+					$json3 = $response3->getHeaders();
+					$data->ava = $json3['Location'];
+					//////
+					
 					$data->save();
 				}
 			}
@@ -211,6 +220,13 @@ class TakeController extends BaseController
 					else{
 						$data->receive_name = 'Me';
 					}
+					// lấy avata
+					$pagekey=FacebookPages::where('pagesid',$data->page)->first()->access_token;
+					$requeststring='/'.$data->sender_id.'/picture';
+					$response3 = $fb->get($requeststring,$pagekey);
+					$json3 = $response3->getHeaders();
+					$data->ava = $json3['Location'];
+					//////
 					$data->save();					
 					if ( TakeController::ishide($data->comments,$data->page) &&  $data->sender_id != $data->page){
 				        $fb->setDefaultAccessToken(FacebookPages::where('pagesid',$data->page)->first()->access_token);

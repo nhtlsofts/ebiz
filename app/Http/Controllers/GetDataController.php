@@ -18,16 +18,22 @@ use App\ReceiptDetail;
 
 class GetDataController extends BaseController
 {
-
+    function read(Request $request){
+        $user_id = Session::get('user_id');
+        $table = 'receive_data_'.$user_id;
+        db::table($table)->where('parent_id',$request->input('oid'))
+                        ->update(['is_read'=>1]);
+    }
     function getdata(LaravelFacebookSdk $fb)
 	{
 
 	    //$fb->setDefaultAccessToken(Session::get('user_id'));
+        /////////////////////////////// lấy comment
         $user_id = Session::get('user_id');
         $table = 'receive_data_'.$user_id;
-	    $data = DB::table($table)
-                ->select('x1.parent_id',$table.'.oid','x1.type','x1.comments','x1.isroot',$table.'.sender_id',$table.'.sender_name','x1.facebookuser',
-                    'x1.post_id','x1.page','x1.data','x1.created_at','x1.updated_at')
+	    $data1 = DB::table($table)
+                ->select($table.'.ava','x1.parent_id',$table.'.oid','x1.type','x1.comments','x1.isroot',$table.'.sender_id',$table.'.sender_name','x1.facebookuser',
+                    'x1.post_id','x1.page','x1.data','x1.created_at','x1.updated_at','x1.is_read')
                 ->leftJoin(DB::raw("(
                     select parent_id,max(created_at) as createtime
                     from receive_data_".$user_id."
@@ -47,31 +53,54 @@ class GetDataController extends BaseController
                         ->on('customer.facebookuser', '=', $table.'.facebookuser');
                 })
                 ->leftJoin( 'facebook_pages' , 'facebook_pages.pagesid' , '=' , 'x1.page' )
-                ->where([[$table.'.Isroot' , 1] , ['facebook_pages.isactive', 1 ] , ['x1.facebookuser',$user_id]])
+                ->where([[$table.'.Isroot' , 1] , ['facebook_pages.isactive', 1 ] ,[$table.'.type','comment'],['x1.facebookuser',$user_id]])
+                ->whereRaw('ifnull(customer.banned,0) = 0 ')
+                ->orderBy('created_at', 'desc')->take(15)->get()->toArray();
+
+                    //where (attackment is null or attackment like '') and comments not like ''
+        ////////////////////////////////////// lấy chat
+        $data2 = DB::table($table)
+                ->select($table.'.ava','x1.parent_id',$table.'.oid','x1.type','x1.comments','x1.isroot',$table.'.sender_id',$table.'.sender_name','x1.facebookuser',
+                    'x1.post_id','x1.page','x1.data','x1.created_at','x1.updated_at','x1.is_read')
+                ->leftJoin(DB::raw("(
+                    select parent_id,max(created_at) as createtime
+                    from receive_data_".$user_id."
+                    where parent_id <> ''
+                    group by parent_id
+                    ) x"), $table.'.oid', '=', 'x.parent_id')
+                ->join(DB::raw("(
+                    select * 
+                    from receive_data_".$user_id."
+                    ) x1"), function($join)
+                {
+                    $join->on('x1.created_at', '=', 'x.createtime');                        
+                    $join->on('x1.parent_id', '=', 'x.parent_id'); 
+                })
+                ->leftJoin('customer', function ($join) use ($table) {
+                    $join->on('customer.fbid', '=', $table.'.sender_id')
+                        ->on('customer.facebookuser', '=', $table.'.facebookuser');
+                })
+                ->leftJoin( 'facebook_pages' , 'facebook_pages.pagesid' , '=' , 'x1.page' )
+                ->where([[$table.'.Isroot' , 1] , ['facebook_pages.isactive', 1 ] , [$table.'.type','message'],['x1.facebookuser',$user_id]])
                 ->whereRaw('ifnull(customer.banned,0) = 0 ')
                 ->orderBy('created_at', 'desc')->take(15)->get()->toArray();
 
                     //where (attackment is null or attackment like '') and comments not like ''
 
-
         $province = db::table('province')->get()->toArray();        
         $district = db::table('district')->get()->toArray();
 
-        return view('showhang',['manages' => $data,'province' => $province,'district' => $district]);
+        return view('showhang',['comments' => $data1,'messages' => $data2,'province' => $province,'district' => $district]);
 	}
     function getmoredata(LaravelFacebookSdk $fb,Request $request)
     {
-        $page = $request->input('page',1);
-        Paginator::currentPageResolver(function() use ($page) {
-            return $page;
-        });
-
+        $time = $request->input('time');
         //$fb->setDefaultAccessToken(Session::get('user_id'));
         $user_id = Session::get('user_id');
         $table = 'receive_data_'.$user_id;
         $data = DB::table($table)
-                ->select('x1.parent_id',$table.'.oid','x1.type','x1.comments','x1.isroot',$table.'.sender_id',$table.'.sender_name','x1.facebookuser',
-                    'x1.post_id','x1.page','x1.data','x1.created_at','x1.updated_at')
+                ->select($table.'.ava','x1.parent_id',$table.'.oid','x1.type','x1.comments','x1.isroot',$table.'.sender_id',$table.'.sender_name','x1.facebookuser',
+                    'x1.post_id','x1.page','x1.data','x1.created_at','x1.updated_at','x1.is_read')
                 ->leftJoin(DB::raw("(
                     select parent_id,max(created_at) as createtime
                     from receive_data_".$user_id."
@@ -86,30 +115,27 @@ class GetDataController extends BaseController
                     $join->on('x1.created_at', '=', 'x.createtime');                        
                     $join->on('x1.parent_id', '=', 'x.parent_id'); 
                 })
-                ->leftJoin( 'facebook_pages' , 'facebook_pages.pagesid' , '=' , 'x1.page' )
                 ->leftJoin('customer', function ($join) use ($table) {
                     $join->on('customer.fbid', '=', $table.'.sender_id')
                         ->on('customer.facebookuser', '=', $table.'.facebookuser');
                 })
-                ->where([[$table.'.Isroot' , 1] , ['facebook_pages.isactive', 1 ] ,[$table.'.type','comment'], ['x1.facebookuser',$user_id]])
+                ->leftJoin( 'facebook_pages' , 'facebook_pages.pagesid' , '=' , 'x1.page' )
+                ->where([[$table.'.Isroot' , 1] , ['facebook_pages.isactive', 1 ] , [$table.'.type','comment'],['x1.facebookuser',$user_id]])
                 ->whereRaw('ifnull(customer.banned,0) = 0 ')
+                ->whereRaw('x1.created_at < "'.$time.'"')
                 ->orderBy('created_at', 'desc')
-                ->paginate(15)->toArray();
+                ->take(15)->get()->toArray();
         return $data;
     }
     function getmoredata2(LaravelFacebookSdk $fb,Request $request)
     {
-        $page = $request->input('page',1);
-        Paginator::currentPageResolver(function() use ($page) {
-            return $page;
-        });
-
+        $time = $request->input('time');
         //$fb->setDefaultAccessToken(Session::get('user_id'));
         $user_id = Session::get('user_id');
         $table = 'receive_data_'.$user_id;
         $data = DB::table($table)
-                ->select('x1.parent_id',$table.'.oid','x1.type','x1.comments','x1.isroot',$table.'.sender_id',$table.'.sender_name','x1.facebookuser',
-                    'x1.post_id','x1.page','x1.data','x1.created_at','x1.updated_at')
+                ->select($table.'.ava','x1.parent_id',$table.'.oid','x1.type','x1.comments','x1.isroot',$table.'.sender_id',$table.'.sender_name','x1.facebookuser',
+                    'x1.post_id','x1.page','x1.data','x1.created_at','x1.updated_at','x1.is_read')
                 ->leftJoin(DB::raw("(
                     select parent_id,max(created_at) as createtime
                     from receive_data_".$user_id."
@@ -124,10 +150,16 @@ class GetDataController extends BaseController
                     $join->on('x1.created_at', '=', 'x.createtime');                        
                     $join->on('x1.parent_id', '=', 'x.parent_id'); 
                 })
+                ->leftJoin('customer', function ($join) use ($table) {
+                    $join->on('customer.fbid', '=', $table.'.sender_id')
+                        ->on('customer.facebookuser', '=', $table.'.facebookuser');
+                })
                 ->leftJoin( 'facebook_pages' , 'facebook_pages.pagesid' , '=' , 'x1.page' )
-                ->where([[$table.'.Isroot' , 1] , ['facebook_pages.isactive', 1 ] ,[$table.'.type','message'], ['x1.facebookuser',$user_id]])
+                ->where([[$table.'.Isroot' , 1] , ['facebook_pages.isactive', 1 ] , [$table.'.type','message'],['x1.facebookuser',$user_id]])
+                ->whereRaw('ifnull(customer.banned,0) = 0 ')
+                ->whereRaw('x1.created_at < "'.$time.'"')
                 ->orderBy('created_at', 'desc')
-                ->paginate(15)->toArray();
+                ->take(15)->get()->toArray();
         return $data;
     }
     function getdetail(LaravelFacebookSdk $fb)

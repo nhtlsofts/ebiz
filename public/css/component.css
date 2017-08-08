@@ -76,8 +76,12 @@
 	content: "\f230";
 }
 
-.icon-download:before {
-	content: "\f2b5";
+.icon-seen:before {
+	content: "\f06e";
+}
+
+.icon-unseen:before {
+	content: "\f070";
 }
 
 .icon-option:before {
